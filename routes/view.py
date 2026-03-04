@@ -18,14 +18,11 @@ def get_accessible_cameras(user_id):
     """Retorna câmeras agrupadas por dono que o usuário pode visualizar."""
     from models import User
 
-    # Câmeras próprias
     own_cams = Camera.query.filter_by(owner_id=user_id).all()
 
-    # Câmeras com permissão individual
     perms = Permission.query.filter_by(user_id=user_id, can_view=True).all()
     perm_cam_ids = {p.camera_id for p in perms}
 
-    # Câmeras via grupos
     memberships = GroupMember.query.filter_by(user_id=user_id).all()
     group_ids = {m.group_id for m in memberships}
     group_perms = GroupPermission.query.filter(
@@ -36,13 +33,11 @@ def get_accessible_cameras(user_id):
 
     all_cam_ids = perm_cam_ids | group_cam_ids
 
-    # Busca câmeras de outros donos
     shared_cams = Camera.query.filter(
         Camera.id.in_(all_cam_ids),
         Camera.owner_id != user_id
     ).all() if all_cam_ids else []
 
-    # Agrupa por dono
     owners_map = {}
     for cam in own_cams:
         owner = cam.owner
@@ -56,13 +51,48 @@ def get_accessible_cameras(user_id):
             owners_map[owner.id] = {'owner': owner, 'cameras': []}
         owners_map[owner.id]['cameras'].append(cam)
 
-    # Garante que o próprio usuário apareça primeiro
     grouped = []
     if user_id in owners_map:
         grouped.append(owners_map.pop(user_id))
     grouped.extend(owners_map.values())
 
     return grouped
+
+
+def build_rtsp_url(cam: Camera) -> str:
+    """Monta a URL RTSP correta baseada no app/modelo da câmera."""
+
+    # Prioridade 1: template do CameraApp cadastrado no banco
+    if cam.app_id and cam.app and cam.app.rtsp_template:
+        return (
+            cam.app.rtsp_template
+            .replace('{user}',     cam.cam_username or '')
+            .replace('{password}', cam.cam_password or '')
+            .replace('{pass}',     cam.cam_password or '')
+            .replace('{ip}',       cam.ip_address)
+            .replace('{port}',     cam.port or '554')
+        )
+
+    # Prioridade 2: detecção pelo app_brand legado
+    brand = (cam.app_brand or '').lower()
+    user_part = ''
+    if cam.cam_username:
+        pwd = f":{cam.cam_password}" if cam.cam_password else ''
+        user_part = f"{cam.cam_username}{pwd}@"
+
+    ip   = cam.ip_address
+    port = cam.port or '554'
+
+    if 'v380' in brand or 'yoosee' in brand:
+        # V380 / Yoosee (Airwick, Lâmpada)
+        return f"rtsp://{user_part}{ip}:{port}/live/ch00_0"
+
+    if 'onvif' in brand or 'ptz' in brand or 'hikvision' in brand or 'dahua' in brand:
+        # Câmeras PTZ compatíveis com ONVIF
+        return f"rtsp://{user_part}{ip}:{port}/onvif1"
+
+    # Fallback genérico
+    return f"rtsp://{user_part}{ip}:{port}/stream1"
 
 
 @view_bp.route('/view')
@@ -80,15 +110,18 @@ def view():
 @view_bp.route('/view/add-cam/<int:cam_id>', methods=['POST'])
 @login_required
 def add_cam(cam_id):
-    import subprocess, os
-    user_id = session['user_id']
+    import os, logging
+    import requests as req
 
+    user_id = session['user_id']
     cam = Camera.query.get_or_404(cam_id)
 
-    # Verifica acesso
+    # ── Verifica acesso ──────────────────────────────────────────────
     has_access = cam.owner_id == user_id
     if not has_access:
-        perm = Permission.query.filter_by(camera_id=cam_id, user_id=user_id, can_view=True).first()
+        perm = Permission.query.filter_by(
+            camera_id=cam_id, user_id=user_id, can_view=True
+        ).first()
         has_access = perm is not None
     if not has_access:
         memberships = GroupMember.query.filter_by(user_id=user_id).all()
@@ -104,44 +137,60 @@ def add_cam(cam_id):
     if not has_access:
         return jsonify({'ok': False, 'error': 'Sem permissão'}), 403
 
-    # Monta URL RTSP
-    user_part = ''
-    if cam.cam_username:
-        user_part = f"{cam.cam_username}:{cam.cam_password}@" if cam.cam_password else f"{cam.cam_username}@"
-    rtsp_url = f"rtsp://{user_part}{cam.ip_address}:{cam.port or '554'}/stream1"
-
-    # Usa template do app se disponível
-    if cam.app_id and cam.app and cam.app.rtsp_template:
-        rtsp_url = cam.app.rtsp_template \
-            .replace('{user}', cam.cam_username or '') \
-            .replace('{password}', cam.cam_password or '') \
-            .replace('{ip}', cam.ip_address) \
-            .replace('{port}', cam.port or '554')
-
-    go2rtc_url = os.environ.get('GO2RTC_URL', 'http://localhost:1984')
+    # ── Monta URL RTSP ───────────────────────────────────────────────
+    rtsp_url    = build_rtsp_url(cam)
+    go2rtc_base = os.environ.get('GO2RTC_URL', 'http://localhost:1984').rstrip('/')
     stream_name = f"cam_{cam_id}"
 
+    logging.info(f"[go2rtc] Registrando stream '{stream_name}' → {rtsp_url}")
+
     try:
-        import requests as req
-        resp = req.post(
-            f"{go2rtc_url}/api/streams",
+        # PUT /api/streams cria ou sobrescreve a stream (correto conforme OpenAPI)
+        resp = req.put(
+            f"{go2rtc_base}/api/streams",
             params={'name': stream_name, 'src': rtsp_url},
             timeout=5
         )
+
+        logging.info(f"[go2rtc] Resposta: {resp.status_code} — {resp.text}")
+
+        if resp.status_code not in (200, 201):
+            return jsonify({
+                'ok': False,
+                'error': f"go2rtc retornou {resp.status_code}: {resp.text}"
+            }), 500
+
         return jsonify({'ok': True, 'stream': stream_name})
+
+    except req.exceptions.ConnectionError:
+        return jsonify({
+            'ok': False,
+            'error': 'Não foi possível conectar ao go2rtc. Verifique se está rodando.'
+        }), 500
     except Exception as e:
+        logging.exception("[go2rtc] Erro inesperado")
         return jsonify({'ok': False, 'error': str(e)}), 500
 
 
 @view_bp.route('/view/remove-cam/<int:cam_id>', methods=['POST'])
 @login_required
 def remove_cam(cam_id):
-    import os
-    go2rtc_url = os.environ.get('GO2RTC_URL', 'http://localhost:1984')
+    import os, logging
+    import requests as req
+
+    go2rtc_base = os.environ.get('GO2RTC_URL', 'http://localhost:1984').rstrip('/')
     stream_name = f"cam_{cam_id}"
+
+    logging.info(f"[go2rtc] Removendo stream '{stream_name}'")
+
     try:
-        import requests as req
-        req.delete(f"{go2rtc_url}/api/streams", params={'name': stream_name}, timeout=5)
-    except Exception:
-        pass
+        resp = req.delete(
+            f"{go2rtc_base}/api/streams",
+            params={'name': stream_name},
+            timeout=5
+        )
+        logging.info(f"[go2rtc] Remoção: {resp.status_code}")
+    except Exception as e:
+        logging.warning(f"[go2rtc] Erro ao remover stream: {e}")
+
     return jsonify({'ok': True})
