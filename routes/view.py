@@ -99,9 +99,18 @@ def build_rtsp_url(cam: Camera) -> str:
 @login_required
 def view():
     import os
+    from flask import request
     user_id = session['user_id']
     grouped_cameras = get_accessible_cameras(user_id)
-    go2rtc_url = os.environ.get('GO2RTC_URL', 'http://localhost:1984')
+
+    # Porta do go2rtc (pode ser sobrescrita por variável de ambiente)
+    go2rtc_port = os.environ.get('GO2RTC_PORT', '1984')
+
+    # Usa o mesmo host que o cliente usou para acessar o Flask,
+    # mas substitui a porta pela do go2rtc
+    req_host = request.host.split(':')[0]  # ex: "192.168.137.1" ou "localhost"
+    go2rtc_url = f"http://{req_host}:{go2rtc_port}"
+
     return render_template('view.html',
                            grouped_cameras=grouped_cameras,
                            go2rtc_url=go2rtc_url)
