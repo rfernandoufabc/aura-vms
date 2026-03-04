@@ -1,0 +1,444 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+    .view-wrapper {
+        display: flex;
+        gap: 20px;
+        align-items: flex-start;
+    }
+
+    /* ── Painel lateral de seleção ── */
+    .cam-selector {
+        width: 280px;
+        flex-shrink: 0;
+        background: var(--glass-panel);
+        border: 1px solid var(--glass-border);
+        border-radius: 12px;
+        padding: 20px;
+        position: sticky;
+        top: 72px;
+        max-height: calc(100vh - 96px);
+        overflow-y: auto;
+    }
+
+    .cam-selector h3 {
+        font-size: .82em;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        color: var(--text-muted);
+        margin-bottom: 14px;
+    }
+
+    .cam-owner-group {
+        margin-bottom: 18px;
+    }
+
+    .cam-owner-label {
+        font-size: .72em;
+        text-transform: uppercase;
+        letter-spacing: 1.2px;
+        color: var(--amethyst-core);
+        font-weight: 600;
+        padding: 4px 0 6px 0;
+        border-bottom: 1px solid rgba(157,78,221,.15);
+        margin-bottom: 8px;
+    }
+
+    .cam-owner-label.own {
+        color: var(--neon-cyan);
+        border-bottom-color: rgba(0,245,212,.15);
+    }
+
+    .cam-selector-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .cam-selector-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: rgba(0, 0, 0, .25);
+        border: 1px solid var(--glass-border);
+        border-radius: 8px;
+        padding: 10px 12px;
+        font-size: .82em;
+        gap: 8px;
+    }
+
+    .cam-selector-item.active {
+        border-color: var(--neon-cyan);
+        background: rgba(0, 245, 212, .06);
+    }
+
+    .cam-selector-item .cam-info {
+        flex: 1;
+        overflow: hidden;
+    }
+
+    .cam-selector-item .cam-info .cam-label {
+        color: var(--text-main);
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .cam-selector-item .cam-info .cam-ip {
+        color: var(--text-muted);
+        font-size: .78em;
+        font-family: monospace;
+    }
+
+    .btn-add-cam {
+        background: rgba(0, 245, 212, .15);
+        border: 1px solid rgba(0, 245, 212, .4);
+        color: var(--neon-cyan);
+        border-radius: 6px;
+        padding: 4px 10px;
+        font-size: .78em;
+        cursor: pointer;
+        font-family: 'Poppins', sans-serif;
+        font-weight: 600;
+        white-space: nowrap;
+        transition: all .2s;
+    }
+
+    .btn-add-cam:hover {
+        background: rgba(0, 245, 212, .25);
+        transform: none;
+        box-shadow: none;
+    }
+
+    .btn-add-cam.added {
+        background: rgba(255, 0, 85, .1);
+        border-color: rgba(255, 0, 85, .4);
+        color: var(--danger);
+    }
+
+    /* ── Área principal ── */
+    .view-main {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .view-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .view-header h2 {
+        margin: 0;
+        font-size: 1.3em;
+    }
+
+    .view-controls {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+    }
+
+    .grid-btn {
+        background: var(--glass-panel);
+        border: 1px solid var(--glass-border);
+        color: var(--text-muted);
+        border-radius: 6px;
+        padding: 6px 12px;
+        font-size: .78em;
+        cursor: pointer;
+        font-family: 'Poppins', sans-serif;
+        font-weight: 600;
+        transition: all .2s;
+    }
+
+    .grid-btn:hover, .grid-btn.active {
+        border-color: var(--amethyst-core);
+        color: var(--amethyst-core);
+        background: rgba(157, 78, 221, .1);
+    }
+
+    .cam-grid {
+        display: grid;
+        gap: 16px;
+    }
+
+    .cam-grid.cols-1 { grid-template-columns: 1fr; }
+    .cam-grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+    .cam-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+    .cam-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+
+    .cam-tile {
+        background: var(--glass-panel);
+        border: 1px solid var(--glass-border);
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .cam-tile-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 14px;
+        border-bottom: 1px solid var(--glass-border);
+    }
+
+    .cam-tile-header .cam-name {
+        font-size: .85em;
+        font-weight: 600;
+        color: var(--neon-cyan);
+    }
+
+    .cam-tile-header .cam-meta {
+        font-size: .75em;
+        color: var(--text-muted);
+    }
+
+    .cam-tile iframe {
+        width: 100%;
+        aspect-ratio: 16/9;
+        border: none;
+        display: block;
+        background: #000;
+    }
+
+    .cam-tile-footer {
+        padding: 8px 14px;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .cam-tile-footer a {
+        font-size: .75em;
+        color: var(--text-muted);
+        text-decoration: none;
+        transition: color .2s;
+    }
+
+    .cam-tile-footer a:hover {
+        color: var(--neon-cyan);
+    }
+
+    .btn-remove-tile {
+        background: rgba(255, 0, 85, .1);
+        border: 1px solid rgba(255, 0, 85, .3);
+        color: var(--danger);
+        border-radius: 6px;
+        padding: 3px 10px;
+        font-size: .75em;
+        cursor: pointer;
+        font-family: 'Poppins', sans-serif;
+        font-weight: 600;
+        transition: all .2s;
+    }
+
+    .btn-remove-tile:hover {
+        background: rgba(255, 0, 85, .2);
+        transform: none;
+        box-shadow: none;
+    }
+
+    .cam-tile-owner {
+        font-size: .72em;
+        color: var(--amethyst-core);
+        font-weight: 600;
+    }
+
+    #empty-state {
+        text-align: center;
+        padding: 80px 0;
+        color: var(--text-muted);
+        border: 1px dashed var(--glass-border);
+        border-radius: 12px;
+    }
+
+    #empty-state .icon {
+        font-size: 2.5em;
+        margin-bottom: 12px;
+    }
+
+    #empty-state p {
+        font-size: .88em;
+    }
+</style>
+
+<div class="view-wrapper">
+
+    <!-- ── Painel lateral ── -->
+    <div class="cam-selector">
+        <h3>📷 Câmeras Disponíveis</h3>
+
+        {% if grouped_cameras %}
+            {% for group in grouped_cameras %}
+                <div class="cam-owner-group">
+                    <div class="cam-owner-label {% if group.owner.id == session.get('user_id') %}own{% endif %}">
+                        {% if group.owner.id == session.get('user_id') %}
+                            📷 Minhas Câmeras
+                        {% else %}
+                            👤 @{{ group.owner.username }}
+                        {% endif %}
+                    </div>
+                    <div class="cam-selector-list">
+                        {% for cam in group.cameras %}
+                            <div class="cam-selector-item" id="selector-{{ cam.id }}">
+                                <div class="cam-info">
+                                    <div class="cam-label">
+                                        {{ cam.name or cam.model_name or cam.app_brand or ('Câmera ' ~ cam.id) }}
+                                    </div>
+                                    <div class="cam-ip">{{ cam.ip_address }}:{{ cam.port or '554' }}</div>
+                                </div>
+                                <button class="btn-add-cam"
+                                        id="btn-{{ cam.id }}"
+                                        onclick="toggleCamera(
+                                            {{ cam.id }},
+                                            '{{ (cam.name or cam.model_name or cam.app_brand or ('Câmera ' ~ cam.id)) | e }}',
+                                            '{{ cam.ip_address }}:{{ cam.port or '554' }}',
+                                            '{% if group.owner.id == session.get('user_id') %}Minha{% else %}@{{ group.owner.username }}{% endif %}',
+                                            this
+                                        )">
+                                    + Adicionar
+                                </button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p style="color:var(--text-muted);font-size:.82em;text-align:center;padding:20px 0;">
+                Nenhuma câmera disponível.
+            </p>
+        {% endif %}
+    </div>
+
+    <!-- ── Área principal ── -->
+    <div class="view-main">
+        <div class="view-header">
+            <h2>🎥 Visualização ao Vivo</h2>
+            <div class="view-controls">
+                <span style="font-size:.78em;color:var(--text-muted);margin-right:4px;">Colunas:</span>
+                <button class="grid-btn" onclick="setColumns(1, this)">1</button>
+                <button class="grid-btn active" onclick="setColumns(2, this)">2</button>
+                <button class="grid-btn" onclick="setColumns(3, this)">3</button>
+                <button class="grid-btn" onclick="setColumns(4, this)">4</button>
+            </div>
+        </div>
+
+        <div class="cam-grid cols-2" id="cam-grid"></div>
+
+        <div id="empty-state">
+            <div class="icon">🎥</div>
+            <p>Nenhuma câmera selecionada.</p>
+            <p style="margin-top:6px;font-size:.82em;">
+                Escolha uma câmera no painel à esquerda para começar a visualizar.
+            </p>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const GO2RTC_URL = "{{ go2rtc_url }}";
+    const activeCams = new Set();
+
+    function toggleCamera(camId, label, ip, ownerLabel, btn) {
+        if (activeCams.has(camId)) {
+            removeCamera(camId);
+        } else {
+            addCamera(camId, label, ip, ownerLabel, btn);
+        }
+    }
+
+    function addCamera(camId, label, ip, ownerLabel, btn) {
+        fetch(`/view/add-cam/${camId}`, {method: 'POST'})
+            .then(r => r.json())
+            .then(data => {
+                if (!data.ok) {
+                    alert(`Erro ao conectar câmera: ${data.error}`);
+                    return;
+                }
+
+                activeCams.add(camId);
+
+                btn.textContent = '− Remover';
+                btn.classList.add('added');
+                document.getElementById(`selector-${camId}`).classList.add('active');
+
+                const grid = document.getElementById('cam-grid');
+                const tile = document.createElement('div');
+                tile.className = 'cam-tile';
+                tile.id = `tile-${camId}`;
+                tile.innerHTML = `
+                    <div class="cam-tile-header">
+                        <div>
+                            <span class="cam-name">${label}</span>
+                            <span class="cam-tile-owner" style="margin-left:8px;">${ownerLabel}</span>
+                        </div>
+                        <span class="cam-meta">${ip}</span>
+                    </div>
+                    <iframe src="${GO2RTC_URL}/stream.html?src=cam_${camId}"
+                            allowfullscreen></iframe>
+                    <div class="cam-tile-footer">
+                        <a href="${GO2RTC_URL}/stream.html?src=cam_${camId}" target="_blank">
+                            ↗ Abrir em nova aba
+                        </a><button class="btn-remove-tile" onclick="removeCamera(${camId})">
+                            ✕ Remover
+                        </button>
+                    </div>
+                `;
+                grid.appendChild(tile);
+                updateEmptyState();
+            })
+            .catch(() => alert('Erro ao conectar com o servidor.'));
+    }
+
+    function removeCamera(camId) {
+        fetch(`/view/remove-cam/${camId}`, {method: 'POST'})
+            .finally(() => {
+                activeCams.delete(camId);
+
+                const tile = document.getElementById(`tile-${camId}`);
+                if (tile) tile.remove();
+
+                const btn = document.getElementById(`btn-${camId}`);
+                if (btn) {
+                    btn.textContent = '+ Adicionar';
+                    btn.classList.remove('added');
+                }
+                const item = document.getElementById(`selector-${camId}`);
+                if (item) item.classList.remove('active');
+
+                updateEmptyState();
+            });
+    }
+
+    function updateEmptyState() {
+        const empty = document.getElementById('empty-state');
+        const grid  = document.getElementById('cam-grid');
+        if (activeCams.size === 0) {
+            empty.style.display = 'block';
+            grid.style.display  = 'none';
+        } else {
+            empty.style.display = 'none';
+            grid.style.display  = 'grid';
+        }
+    }
+
+    function setColumns(n, btn) {
+        const grid = document.getElementById('cam-grid');
+        if (!grid) return;
+        grid.className = `cam-grid cols-${n}`;
+        document.querySelectorAll('.grid-btn').forEach(b => b.classList.remove('active'));
+        if (btn) btn.classList.add('active');
+    }
+
+    updateEmptyState();
+</script>
+
+{% endblock %}

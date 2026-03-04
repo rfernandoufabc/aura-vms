@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AuraVMS — Entrar</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            --bg-deep: #05030A;
+            --bg-gradient-center: #241142;
+            --glass-panel: rgba(22, 19, 36, 0.65);
+            --glass-border: rgba(157, 78, 221, 0.25);
+            --text-main: #EBEBEB;
+            --text-muted: #A09DB0;
+            --amethyst-core: #9D4EDD;
+            --amethyst-deep: #7B2CBF;
+            --amethyst-glow: rgba(157, 78, 221, 0.6);
+            --neon-cyan: #00F5D4;
+            --cyan-glow: rgba(0, 245, 212, 0.6);
+            --danger: #FF0055;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: radial-gradient(circle at 50% 0%, var(--bg-gradient-center) 0%, var(--bg-deep) 70%, #000 100%);
+            background-attachment: fixed;
+            font-family: 'Poppins', sans-serif;
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 30px 16px;
+        }
+
+        .brand {
+            font-size: 2.4em;
+            font-weight: 700;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: #FFF;
+            text-decoration: none;
+            text-shadow: 0 0 5px #FFF, 0 0 10px #FFF,
+            0 0 25px var(--amethyst-core), 0 0 50px var(--amethyst-core),
+            0 0 90px var(--amethyst-deep);
+            margin-bottom: 6px;
+            transition: text-shadow 0.4s ease;
+        }
+
+        .brand:hover {
+            text-shadow: 0 0 5px #FFF, 0 0 10px #FFF,
+            0 0 25px var(--neon-cyan), 0 0 50px var(--neon-cyan), 0 0 90px #00B39F;
+        }
+
+        .tagline {
+            color: var(--text-muted);
+            font-size: 0.82em;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-bottom: 36px;
+        }
+
+        /* ── Abas ── */
+        .auth-wrapper {
+            width: 100%;
+            max-width: 460px;
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid var(--glass-border);
+            margin-bottom: -1px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            background: transparent;
+            border: 1px solid transparent;
+            border-bottom: none;
+            color: var(--text-muted);
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.85em;
+            font-weight: 500;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            padding: 12px;
+            cursor: pointer;
+            border-radius: 8px 8px 0 0;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn:hover {
+            color: var(--neon-cyan);
+            background: rgba(0, 245, 212, 0.04);
+            transform: none;
+            box-shadow: none;
+        }
+
+        .tab-btn.active {
+            background: var(--glass-panel);
+            border-color: var(--glass-border);
+            color: var(--neon-cyan);
+            text-shadow: 0 0 8px var(--cyan-glow);
+        }
+
+        /* ── Card ── */
+        .auth-card {
+            background: var(--glass-panel);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 0 0 12px 12px;
+            padding: 28px 28px 24px;
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(157, 78, 221, 0.08);
+        }
+
+        .form-panel {
+            display: none;
+        }
+
+        .form-panel.active {
+            display: block;
+        }
+
+        /* ── Grid 2 colunas (cadastro) ── */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0 20px;
+        }
+
+        .form-grid .full {
+            grid-column: 1 / -1;
+        }
+
+        /* ── Labels e inputs ── */
+        label {
+            display: block;
+            color: var(--text-muted);
+            font-size: 0.75em;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+            margin-top: 16px;
+        }
+
+        label:first-of-type, .form-grid div:first-child label {
+            margin-top: 0;
+        }
+
+        input[type="text"], input[type="email"], input[type="password"] {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.35);
+            color: var(--text-main);
+            border: 1px solid var(--glass-border);
+            border-radius: 6px;
+            padding: 10px 13px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--amethyst-core);
+            box-shadow: 0 0 14px var(--glass-border);
+            background: rgba(0, 0, 0, 0.55);
+        }
+
+        /* Indicador de força de senha */
+        .pwd-strength {
+            display: flex;
+            gap: 5px;
+            margin-top: 6px;
+            height: 3px;
+        }
+
+        .pwd-strength span {
+            flex: 1;
+            border-radius: 2px;
+            background: rgba(255, 255, 255, 0.08);
+            transition: background 0.3s ease;
+        }
+
+        .pwd-hint {
+            font-size: 0.72em;
+            color: var(--text-muted);
+            margin-top: 5px;
+            min-height: 14px;
+        }
+
+        /* ── Botão principal ── */
+        .btn-primary {
+            width: 100%;
+            margin-top: 22px;
+            padding: 12px;
+            background: linear-gradient(135deg, var(--amethyst-deep), var(--amethyst-core));
+            color: #FFF;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.9em;
+            font-weight: 600;
+            letter-spacing: 0.8px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3), 0 0 12px var(--glass-border);
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 22px rgba(0, 0, 0, 0.4), 0 0 22px var(--amethyst-glow);
+        }
+
+        /* ── Reenviar confirmação ── */
+        .resend-area {
+            margin-top: 20px;
+            padding-top: 18px;
+            border-top: 1px solid var(--glass-border);
+        }
+
+        .resend-area p {
+            color: var(--text-muted);
+            font-size: 0.78em;
+            margin-bottom: 10px;
+        }
+
+        .resend-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .resend-row input {
+            margin: 0;
+            flex: 1;
+        }
+
+        .btn-ghost {
+            background: transparent;
+            border: 1px solid var(--glass-border);
+            color: var(--text-muted);
+            font-family: 'Poppins', sans-serif;
+            font-size: 0.78em;
+            padding: 10px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.3s ease;
+        }
+
+        .btn-ghost:hover {
+            border-color: var(--neon-cyan);
+            color: var(--neon-cyan);
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* ── Flash messages ── */
+        .flash-list {
+            width: 100%;
+            max-width: 460px;
+            margin-bottom: 18px;
+        }
+
+        .flash {
+            padding: 11px 16px;
+            border-radius: 8px;
+            font-size: 0.85em;
+            margin-bottom: 8px;
+            border-left: 4px solid;
+            background: var(--glass-panel);
+            backdrop-filter: blur(8px);
+        }
+
+        .flash.success {
+            border-color: var(--neon-cyan);
+            color: var(--text-main);
+        }
+
+        .flash.error {
+            border-color: var(--danger);
+            color: var(--danger);
+        }
+
+        .footer-note {
+            margin-top: 26px;
+            color: var(--text-muted);
+            font-size: 0.75em;
+            letter-spacing: 0.5px;
+        }
+
+        /* ── Selo de e-mail verificado ── */
+        .verify-note {
+            font-size: 0.75em;
+            color: var(--text-muted);
+            margin-top: 22px;
+            padding: 12px 14px;
+            border-radius: 8px;
+            background: rgba(0, 245, 212, 0.04);
+            border: 1px solid rgba(0, 245, 212, 0.12);
+            line-height: 1.6;
+        }
+
+        .verify-note strong {
+            color: var(--neon-cyan);
+        }
+    </style>
+</head>
+<body>
+
+<a href="/" class="brand">AuraVMS</a>
+<p class="tagline">Video Management System</p>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        <div class="flash-list">
+            {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+        </div>
+    {% endif %}
+{% endwith %}
+
+<div class="auth-wrapper">
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('login', this)">Entrar</button>
+        <button class="tab-btn" onclick="switchTab('register', this)">Criar Conta</button>
+    </div>
+
+    <div class="auth-card">
+
+        <!-- ── Painel LOGIN ── -->
+        <div id="panel-login" class="form-panel active">
+            <form method="POST" action="/login">
+                <input type="hidden" name="action" value="login">
+
+                <label for="l-username">Usuário</label>
+                <input type="text" id="l-username" name="username" placeholder="seu.usuario" required autofocus>
+
+                <label for="l-password">Senha</label>
+                <input type="password" id="l-password" name="password" placeholder="••••••••" required>
+
+                <button type="submit" class="btn-primary">Entrar</button>
+                <!-- Dentro do formulário de login, após o botão de submit -->
+                <div style="text-align:center;margin-top:14px;">
+                    <a href="/account-help"
+                       style="font-size:.78em;color:var(--text-muted);text-decoration:none;
+              transition:color .2s;"
+                       onmouseover="this.style.color='var(--neon-cyan)'"
+                       onmouseout="this.style.color='var(--text-muted)'">
+                        Problemas com sua conta? Clique aqui
+                    </a>
+                </div>
+            </form>
+
+            <!-- Reenviar confirmação -->
+            <div class="resend-area">
+                <p>Ainda não confirmou seu e-mail? Reenvie o link:</p>
+                <form method="POST" action="/resend-confirmation">
+                    <div class="resend-row">
+                        <input type="email" name="email" placeholder="seu@email.com">
+                        <button type="submit" class="btn-ghost">Reenviar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- ── Painel CADASTRO ── -->
+        <div id="panel-register" class="form-panel">
+            <form method="POST" action="/login">
+                <input type="hidden" name="action" value="register">
+
+                <div class="form-grid">
+                    <div>
+                        <label for="r-first">Nome</label>
+                        <input type="text" id="r-first" name="first_name" placeholder="João" required>
+                    </div>
+                    <div>
+                        <label for="r-last">Sobrenome</label>
+                        <input type="text" id="r-last" name="last_name" placeholder="Silva" required>
+                    </div>
+
+                    <div class="full">
+                        <label for="r-email">E-mail</label>
+                        <input type="email" id="r-email" name="email" placeholder="joao@exemplo.com" required>
+                    </div>
+
+                    <div class="full">
+                        <label for="r-username">Nome de Usuário</label>
+                        <input type="text" id="r-username" name="username" placeholder="joao.silva" required>
+                    </div>
+
+                    <div>
+                        <label for="r-pwd">Senha</label>
+                        <input type="password" id="r-pwd" name="password"
+                               placeholder="Mín. 8 caracteres" required oninput="checkStrength(this.value)">
+                        <div class="pwd-strength">
+                            <span id="s1"></span><span id="s2"></span>
+                            <span id="s3"></span><span id="s4"></span>
+                        </div>
+                        <p class="pwd-hint" id="pwd-hint"></p>
+                    </div>
+
+                    <div>
+                        <label for="r-confirm">Confirmar Senha</label>
+                        <input type="password" id="r-confirm" name="confirm_password"
+                               placeholder="Repita a senha" required oninput="checkMatch()">
+                        <p class="pwd-hint" id="match-hint"></p>
+                    </div>
+                </div>
+
+                <div class="verify-note">
+                    📧 Um e-mail de confirmação será enviado para o endereço informado.<br>
+                    <strong>Verifique sua caixa de entrada</strong> (e o spam) antes de fazer login.
+                </div>
+
+                <button type="submit" class="btn-primary">Criar Conta</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<p class="footer-note">© 2025 AuraVMS — Todos os direitos reservados</p>
+
+<script>
+    function switchTab(panel, btn) {
+        document.querySelectorAll('.form-panel').forEach(p => p.classList.remove('active'));
+        document.getElementById('panel-' + panel).classList.add('active');
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+    }
+
+    function checkStrength(val) {
+        const bars = [document.getElementById('s1'), document.getElementById('s2'),
+            document.getElementById('s3'), document.getElementById('s4')];
+        const hint = document.getElementById('pwd-hint');
+        const colors = ['#FF0055', '#FF7700', '#FFD700', '#00F5D4'];
+        const labels = ['Muito fraca', 'Fraca', 'Moderada', 'Forte'];
+        let score = 0;
+        if (val.length >= 8) score++;
+        if (/[A-Z]/.test(val) && /[a-z]/.test(val)) score++;
+        if (/\d/.test(val)) score++;
+        if (/[^A-Za-z0-9]/.test(val)) score++;
+
+        bars.forEach((b, i) => {
+            b.style.background = i < score ? colors[score - 1] : 'rgba(255,255,255,0.08)';
+        });
+        hint.textContent = val.length ? labels[score - 1] || '' : '';
+        hint.style.color = val.length ? colors[score - 1] : 'transparent';
+    }
+
+    function checkMatch() {
+        const pwd = document.getElementById('r-pwd').value;
+        const conf = document.getElementById('r-confirm').value;
+        const hint = document.getElementById('match-hint');
+        if (!conf) {
+            hint.textContent = '';
+            return;
+        }
+        if (pwd === conf) {
+            hint.textContent = '✓ Senhas coincidem';
+            hint.style.color = '#00F5D4';
+        } else {
+            hint.textContent = '✗ Senhas não coincidem';
+            hint.style.color = '#FF0055';
+        }
+    }
+</script>
+
+</body>
+</html>

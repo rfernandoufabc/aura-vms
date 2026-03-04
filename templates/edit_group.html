@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+    <a href="/groups" class="btn btn-outline" style="padding:4px 12px;font-size:.78em;">← Voltar</a>
+    <h2 style="margin:0;">✏️ Editar Grupo</h2>
+</div>
+<p style="color:var(--text-muted);font-size:.85em;margin-bottom:30px;">
+    Grupo: <span style="color:var(--neon-cyan);">{{ group.name }}</span>
+    {% if session.get('username') == 'admin' %}
+        &nbsp;—&nbsp; Dono:
+        <span style="color:var(--amethyst-core);">{{ owner.username }}</span>
+    {% endif %}
+</p>
+
+<!-- ── Info do grupo ── -->
+<div class="card">
+    <h3>Informações do Grupo</h3>
+    <form method="POST" style="display:grid;grid-template-columns:1fr 1fr;gap:0 24px;">
+        <input type="hidden" name="action" value="update_info">
+        <div>
+            <label style="color:var(--text-muted);font-size:.78em;letter-spacing:1px;text-transform:uppercase;">Nome</label>
+            <input type="text" name="name" value="{{ group.name }}" required>
+        </div>
+        <div>
+            <label style="color:var(--text-muted);font-size:.78em;letter-spacing:1px;text-transform:uppercase;">Descrição</label>
+            <input type="text" name="description" value="{{ group.description or '' }}">
+        </div>
+        <div style="grid-column:1/-1;margin-top:4px;">
+            <button type="submit">💾 Salvar</button>
+        </div>
+    </form>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+
+    <!-- ── Membros ── -->
+    <div class="card">
+        <h3>👤 Membros
+            <span style="color:var(--text-muted);font-weight:400;">({{ group.members | length }})</span>
+        </h3>
+
+        <!-- Adicionar membro -->
+        {% if non_members %}
+        <form method="POST" style="display:flex;gap:8px;margin-bottom:20px;">
+            <input type="hidden" name="action" value="add_member">
+            <select name="user_id" style="margin:0;flex:1;">
+                {% for u in non_members %}
+                <option value="{{ u.id }}">{{ u.username }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" style="padding:10px 16px;white-space:nowrap;">➕ Adicionar</button>
+        </form>
+        {% endif %}
+
+        <!-- Lista de membros -->
+        {% if group.members %}
+            {% for m in group.members %}
+            <div style="display:flex;justify-content:space-between;align-items:center;
+                        padding:10px 0;border-bottom:1px solid var(--glass-border);font-size:.87em;">
+                <span style="color:var(--text-main);">{{ m.user.username }}</span>
+                <form method="POST">
+                    <input type="hidden" name="action"    value="remove_member">
+                    <input type="hidden" name="member_id" value="{{ m.id }}">
+                    <button type="submit"
+                            style="padding:4px 10px;font-size:.78em;
+                                   background:linear-gradient(135deg,#6B0000,var(--danger));">
+                        🗑️
+                    </button>
+                </form>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p style="color:var(--text-muted);font-size:.87em;padding:16px 0;text-align:center;">
+                Nenhum membro ainda.
+            </p>
+        {% endif %}
+    </div>
+
+    <!-- ── Câmeras do grupo ── -->
+    <div class="card">
+        <h3>📷 Câmeras com Acesso
+            <span style="color:var(--text-muted);font-weight:400;">({{ group.permissions | length }})</span>
+        </h3>
+
+        <!-- Adicionar câmera -->
+        {% if avail_cameras %}
+        <form method="POST" style="margin-bottom:20px;">
+            <input type="hidden" name="action" value="add_camera">
+            <select name="camera_id" style="margin-bottom:10px;">
+                {% for c in avail_cameras %}
+                <option value="{{ c.id }}">{{ c.model_name or 'Câmera' }} — {{ c.ip_address }}</option>
+                {% endfor %}
+            </select>
+            <div style="display:flex;gap:12px;margin-bottom:10px;">
+                <label class="checkbox-group" style="margin:0;flex:1;">
+                    <input type="checkbox" name="can_view" value="1" checked>
+                    <span style="font-size:.85em;">👁️ Visualizar</span>
+                </label>
+                <label class="checkbox-group" style="margin:0;flex:1;">
+                    <input type="checkbox" name="can_control" value="1">
+                    <span style="font-size:.85em;">🎮 Controlar</span>
+                </label>
+            </div>
+            <button type="submit">➕ Adicionar Câmera</button>
+        </form>
+        {% endif %}
+
+        <!-- Lista de câmeras -->
+        {% if group.permissions %}
+            {% for gp in group.permissions %}
+            <div style="display:flex;justify-content:space-between;align-items:center;
+                        padding:10px 0;border-bottom:1px solid var(--glass-border);font-size:.87em;">
+                <div>
+                    <span style="color:var(--amethyst-core);">
+                        {{ gp.camera.model_name or 'Câmera #' ~ gp.camera_id }}
+                    </span>
+                    <span style="color:var(--text-muted);font-size:.85em;margin-left:6px;">
+                        {{ gp.camera.ip_address }}
+                    </span>
+                    <br>
+                    <span style="font-size:.80em;">
+                        {% if gp.can_view %}
+                        <span style="color:var(--neon-cyan);">👁️ Ver</span>
+                        {% endif %}
+                        {% if gp.can_control %}
+                        <span style="color:var(--amethyst-core);margin-left:6px;">🎮 Controlar</span>
+                        {% endif %}
+                    </span>
+                </div>
+                <form method="POST">
+                    <input type="hidden" name="action" value="remove_camera">
+                    <input type="hidden" name="gp_id"  value="{{ gp.id }}">
+                    <button type="submit"
+                            style="padding:4px 10px;font-size:.78em;
+                                   background:linear-gradient(135deg,#6B0000,var(--danger));">
+                        🗑️
+                    </button>
+                </form>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p style="color:var(--text-muted);font-size:.87em;padding:16px 0;text-align:center;">
+                Nenhuma câmera vinculada.
+            </p>
+        {% endif %}
+    </div>
+
+</div>
+
+{% endblock %}

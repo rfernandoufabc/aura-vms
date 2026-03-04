@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+    .help-wrapper {
+        max-width: 480px;
+        margin: 60px auto 0;
+    }
+
+    .help-header {
+        text-align: center;
+        margin-bottom: 32px;
+    }
+
+    .help-header .icon {
+        font-size: 2.8em;
+        margin-bottom: 10px;
+    }
+
+    .help-header h2 {
+        font-size: 1.35em;
+        font-weight: 700;
+        color: var(--text-main);
+        margin-bottom: 6px;
+    }
+
+    .help-header p {
+        color: var(--text-muted);
+        font-size: .85em;
+        line-height: 1.6;
+    }
+
+    .help-section {
+        background: var(--glass-panel);
+        border: 1px solid var(--glass-border);
+        border-radius: 12px;
+        padding: 26px 28px;
+        margin-bottom: 18px;
+        transition: border-color .3s;
+    }
+
+    .help-section:hover {
+        border-color: rgba(157,78,221,.4);
+    }
+
+    .help-section.cyan-focus:hover {
+        border-color: rgba(0,245,212,.4);
+    }
+
+    .help-section-title {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 8px;
+    }
+
+    .help-section-title span.icon {
+        font-size: 1.3em;
+    }
+
+    .help-section-title h3 {
+        margin: 0;
+        font-size: .95em;
+        color: var(--amethyst-core);
+        letter-spacing: .5px;
+    }
+
+    .help-section.cyan-focus .help-section-title h3 {
+        color: var(--neon-cyan);
+    }
+
+    .help-section p.desc {
+        color: var(--text-muted);
+        font-size: .82em;
+        line-height: 1.6;
+        margin-bottom: 18px;
+    }
+
+    .help-section label {
+        color: var(--text-muted);
+        font-size: .75em;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        display: block;
+        margin-bottom: 4px;
+    }
+
+    .btn-cyan {
+        background: linear-gradient(135deg, #00897B, #00F5D4);
+        color: #0a0a0a;
+        font-weight: 700;
+    }
+
+    .btn-cyan:hover {
+        box-shadow: 0 6px 20px rgba(0,0,0,.4), 0 0 20px rgba(0,245,212,.4);
+    }
+
+    .back-link {
+        display: block;
+        text-align: center;
+        margin-top: 24px;
+        font-size: .82em;
+        color: var(--text-muted);
+        text-decoration: none;
+        transition: color .2s;
+    }
+
+    .back-link:hover {
+        color: var(--neon-cyan);
+    }
+
+    .divider {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin: 6px 0 20px;
+        color: var(--text-muted);
+        font-size: .72em;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+    }
+
+    .divider::before, .divider::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: var(--glass-border);
+    }
+</style>
+
+<div class="help-wrapper">
+
+    <div class="help-header">
+        <div class="icon">🔧</div>
+        <h2>Problemas com sua conta?</h2>
+        <p>Escolha abaixo o que você precisa. Enviaremos um e-mail<br>com as instruções necessárias.</p>
+    </div>
+
+    <!-- ── Reenviar confirmação de e-mail ── -->
+    <div class="help-section cyan-focus">
+        <div class="help-section-title">
+            <span class="icon">📧</span>
+            <h3>Reenviar e-mail de confirmação</h3>
+        </div>
+        <p class="desc">
+            Não recebeu o link para ativar sua conta ou o link expirou?
+            Informe seu e-mail e reenviaremos a confirmação.
+        </p>
+        <form method="POST" action="/account-help/resend-confirmation">
+            <label>Seu e-mail cadastrado</label>
+            <input type="email" name="email"
+                   placeholder="exemplo@email.com"
+                   required
+                   style="margin-bottom:12px;">
+            <button type="submit" class="btn-cyan" style="width:100%;">
+                📨 Reenviar confirmação
+            </button>
+        </form>
+    </div>
+
+    <div class="divider">ou</div>
+
+    <!-- ── Redefinir senha ── -->
+    <div class="help-section">
+        <div class="help-section-title">
+            <span class="icon">🔑</span>
+            <h3>Redefinir senha</h3>
+        </div>
+        <p class="desc">
+            Esqueceu sua senha? Informe seu e-mail e enviaremos
+            um link seguro para criar uma nova senha.
+        </p>
+        <form method="POST" action="/account-help/reset-password">
+            <label>Seu e-mail cadastrado</label>
+            <input type="email" name="email"
+                   placeholder="exemplo@email.com"
+                   required
+                   style="margin-bottom:12px;">
+            <button type="submit" style="width:100%;">
+                🔑 Enviar link de redefinição
+            </button>
+        </form>
+    </div>
+
+    <a href="/login" class="back-link">← Voltar para o login</a>
+</div>
+
+{% endblock %}

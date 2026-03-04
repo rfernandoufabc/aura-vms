@@ -1,0 +1,369 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+    .section-owner {
+        margin-bottom: 32px;
+    }
+    .section-owner-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 14px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid var(--glass-border);
+    }
+    .section-owner-header h3 {
+        margin: 0;
+        font-size: .95em;
+        color: var(--neon-cyan);
+        letter-spacing: 1px;
+    }
+    .owner-badge {
+        font-size: .72em;
+        background: rgba(0,245,212,.1);
+        border: 1px solid rgba(0,245,212,.25);
+        color: var(--neon-cyan);
+        border-radius: 20px;
+        padding: 2px 10px;
+    }
+    .badge-own {
+        background: rgba(157,78,221,.15);
+        border-color: rgba(157,78,221,.35);
+        color: var(--amethyst-core);
+    }
+    .transfer-form {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        margin-top: 4px;
+    }
+    .transfer-form select {
+        width: auto;
+        margin: 0;
+        padding: 4px 8px;
+        font-size: .78em;
+    }
+    .transfer-form button {
+        padding: 4px 12px;
+        font-size: .78em;
+        background: linear-gradient(135deg,#7B2CBF,#9D4EDD);
+    }
+</style>
+
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;">
+    <h2 style="margin:0;">📷 Câmeras</h2>
+    <a href="/view" class="btn" style="font-size:.82em;">🎥 Visualizar ao Vivo</a>
+</div>
+
+<!-- ── Formulário de adição ── -->
+<div class="card">
+    <h3>➕ Adicionar Nova Câmera</h3>
+    <form method="POST" id="add-cam-form"
+          style="display:grid;grid-template-columns:1fr 1fr;gap:0 24px;">
+
+        <div style="grid-column:1/-1;">
+            <label style="color:var(--text-muted);font-size:.78em;letter-spacing:1px;text-transform:uppercase;">
+                Nome da Câmera <span style="font-weight:400;">(identificação)</span>
+            </label>
+            <input type="text" name="name" placeholder="ex: Portão Principal, Sala Servidores…">
+        </div>
+
+        <div>
+            <label style="color:var(--text-muted);font-size:.78em;letter-spacing:1px;text-transform:uppercase;">
+                Marca / App
+            </label>
+            <select name="app_id" id="app-select" onchange="onAppChange()">
+                <option value="">— Selecione o App —</option>
+            </select>
+        </div>
+
+        <div>
+            <label style="color:var(--text-muted);font-size:.78em;letter-spacing:1px;text-transform:uppercase;">
+                Modelo
+            </label>
+            <select name="model_id" id="model-select">
+                <option value="">— Selecione o Modelo —</option>
+            </select>
+        </div>
+
+        <div style="grid-column:1/-1;">
+            <label style="color:var(--text-muted);font-size:.78em;letter-spacing:1px;text-transform:uppercase;">
+                Endereço IP / URL RTSP
+            </label>
+            <input type="text" name="ip_address" placeholder="ex: 192.168.1.100" required>
+        </div>
+
+        <div>
+            <label style="color:var(--text-muted);font-size:.78em;letter-spacing:1px;text-transform:uppercase;">
+                Porta
+            </label>
+            <input type="text" name="port" value="554" placeholder="554">
+        </div>
+
+        <div><!-- espaço --></div>
+
+        <div>
+            <label style="color:var(--text-muted);font-size:.78em;letter-spacing:1px;text-transform:uppercase;">
+                Usuário da Câmera
+            </label>
+            <input type="text" name="cam_username" placeholder="admin">
+        </div>
+
+        <div>
+            <label style="color:var(--text-muted);font-size:.78em;letter-spacing:1px;text-transform:uppercase;">
+                Senha da Câmera
+            </label>
+            <input type="password" name="cam_password">
+        </div>
+
+        <div style="grid-column:1/-1;">
+            <label id="rtsp-preview-label"
+                   style="color:var(--text-muted);font-size:.78em;letter-spacing:1px;text-transform:uppercase;">
+                Pré-visualização URL RTSP
+            </label>
+            <input type="text" id="rtsp-preview" readonly
+                   style="color:var(--neon-cyan);background:rgba(0,245,212,.04);border-color:rgba(0,245,212,.2);"
+                   placeholder="Preencha os campos acima para gerar a URL…">
+        </div>
+
+        <div style="grid-column:1/-1;margin-top:-4px;">
+            <label class="checkbox-group" style="margin-bottom:0;">
+                <input type="checkbox" name="show_active_viewers" value="1">
+                <span style="font-size:.85em;">👥 Exibir contador de visualizadores ativos</span>
+            </label>
+        </div>
+
+        <div style="grid-column:1/-1;margin-top:4px;">
+            <button type="submit">➕ Adicionar</button>
+        </div>
+    </form>
+</div>
+
+<!-- ── Lista de câmeras ── -->
+{% if not own_cams and (not cams_by_user) %}
+    <div class="card" style="text-align:center;padding:48px;color:var(--text-muted);">
+        <p style="font-size:1.5em;margin-bottom:8px;">📷</p>
+        <p>Nenhuma câmera cadastrada ainda.</p>
+    </div>
+{% else %}
+
+    <!-- Câmeras do próprio usuário logado -->
+    {% if own_cams %}
+    <div class="section-owner">
+        <div class="section-owner-header">
+            <h3>📷 Minhas Câmeras</h3>
+            <span class="owner-badge badge-own">{{ own_cams | length }} câmera{% if own_cams|length != 1 %}s{% endif %}</span>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nome / Modelo</th>
+                        <th>App / Marca</th>
+                        <th>Endereço</th>
+                        <th>Porta</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for cam in own_cams %}
+                    <tr>
+                        <td>
+                            <span style="color:var(--text-main);font-weight:500;">
+                                {{ cam.name or cam.model_name or '—' }}
+                            </span>
+                            {% if cam.name and cam.model_name %}
+                                <br><span style="color:var(--text-muted);font-size:.78em;">{{ cam.model_name }}</span>
+                            {% endif %}
+                        </td>
+                        <td style="color:var(--text-muted);">{{ cam.app_brand or '—' }}</td>
+                        <td>
+                            <span style="font-family:monospace;color:var(--neon-cyan);font-size:.88em;">
+                                {{ cam.ip_address }}
+                            </span>
+                        </td>
+                        <td style="color:var(--text-muted);">{{ cam.port or '554' }}</td>
+                        <td>
+                            <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+                                <a href="/cameras/{{ cam.id }}/edit" class="btn btn-outline"
+                                   style="padding:4px 12px;font-size:.75em;">✏️ Editar</a>
+                                <form method="POST" action="/cameras/{{ cam.id }}/delete"
+                                      onsubmit="return confirm('Remover câmera?')">
+                                    <button type="submit"
+                                            style="padding:4px 12px;font-size:.75em;background:rgba(255,0,85,.15);
+                                                   border:1px solid rgba(255,0,85,.35);color:var(--danger);
+                                                   box-shadow:none;">
+                                        🗑️ Remover
+                                    </button>
+                                </form>
+                                {% if cams_by_user is not none %}
+                                <!-- Admin master: transferir câmera -->
+                                <form method="POST" action="/cameras/{{ cam.id }}/transfer"
+                                      class="transfer-form"
+                                      onsubmit="return confirm('Transferir esta câmera?')">
+                                    <select name="new_owner_id">
+                                        <option value="">Transferir para…</option>
+                                        {% for u in all_users %}
+                                            {% if u.id != cam.owner_id %}
+                                                <option value="{{ u.id }}">@{{ u.username }}</option>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </select>
+                                    <button type="submit">↗️ Transferir</button>
+                                </form>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Admin master: câmeras de outros usuários -->
+    {% if cams_by_user %}
+        {% for owner, cams in cams_by_user.items() %}
+            {% if owner.id != session.get('user_id') %}
+            <div class="section-owner">
+                <div class="section-owner-header">
+                    <h3>👤 @{{ owner.username }}</h3>
+                    <span style="color:var(--text-muted);font-size:.82em;">
+                        {{ owner.first_name }} {{ owner.last_name }}
+                    </span><span class="owner-badge">{{ cams | length }} câmera{% if cams|length != 1 %}s{% endif %}</span>
+                </div>
+                <div class="card" style="padding:0;overflow:hidden;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nome / Modelo</th>
+                                <th>App / Marca</th>
+                                <th>Endereço</th>
+                                <th>Porta</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for cam in cams %}
+                            <tr>
+                                <td>
+                                    <span style="color:var(--text-main);font-weight:500;">
+                                        {{ cam.name or cam.model_name or '—' }}
+                                    </span>
+                                    {% if cam.name and cam.model_name %}
+                                        <br><span style="color:var(--text-muted);font-size:.78em;">{{ cam.model_name }}</span>
+                                    {% endif %}
+                                </td>
+                                <td style="color:var(--text-muted);">{{ cam.app_brand or '—' }}</td>
+                                <td>
+                                    <span style="font-family:monospace;color:var(--neon-cyan);font-size:.88em;">
+                                        {{ cam.ip_address }}
+                                    </span>
+                                </td>
+                                <td style="color:var(--text-muted);">{{ cam.port or '554' }}</td>
+                                <td>
+                                    <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;">
+                                        <a href="/cameras/{{ cam.id }}/edit" class="btn btn-outline"
+                                           style="padding:4px 12px;font-size:.75em;">✏️ Editar</a>
+                                        <form method="POST" action="/cameras/{{ cam.id }}/delete"
+                                              onsubmit="return confirm('Remover câmera?')">
+                                            <button type="submit"
+                                                    style="padding:4px 12px;font-size:.75em;background:rgba(255,0,85,.15);
+                                                           border:1px solid rgba(255,0,85,.35);color:var(--danger);
+                                                           box-shadow:none;">
+                                                🗑️ Remover
+                                            </button>
+                                        </form>
+                                        <!-- Admin master: transferir câmera -->
+                                        <form method="POST" action="/cameras/{{ cam.id }}/transfer"
+                                              class="transfer-form"
+                                              onsubmit="return confirm('Transferir esta câmera?')">
+                                            <select name="new_owner_id">
+                                                <option value="">Transferir para…</option>
+                                                {% for u in all_users %}
+                                                    {% if u.id != cam.owner_id %}
+                                                        <option value="{{ u.id }}">@{{ u.username }}</option>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </select>
+                                            <button type="submit">↗️ Transferir</button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+
+{% endif %}
+
+<script>
+    let appsData = [];
+
+    fetch('/api/camera-apps')
+        .then(r => r.json())
+        .then(data => {
+            appsData = data;
+            const appSel = document.getElementById('app-select');
+            data.forEach(app => {
+                const opt = document.createElement('option');
+                opt.value = app.id;
+                opt.textContent = app.name;
+                opt.dataset.template = app.rtsp_template;
+                appSel.appendChild(opt);
+            });
+        });
+
+    function onAppChange() {
+        const appSel = document.getElementById('app-select');
+        const modelSel = document.getElementById('model-select');
+        const selectedId = parseInt(appSel.value);
+        const app = appsData.find(a => a.id === selectedId);
+
+        modelSel.innerHTML = '<option value="">— Selecione o Modelo —</option>';
+        if (app) {
+            app.models.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m.id;
+                opt.textContent = m.name;
+                modelSel.appendChild(opt);
+            });
+        }
+        updateRtspPreview();
+    }
+
+    function updateRtspPreview() {
+        const appSel   = document.getElementById('app-select');
+        const form     = document.getElementById('add-cam-form');
+        const preview  = document.getElementById('rtsp-preview');
+        const user     = form.querySelector('[name=cam_username]').value || '';
+        const password = form.querySelector('[name=cam_password]').value || '';
+        const ip       = form.querySelector('[name=ip_address]').value || '';
+        const port     = form.querySelector('[name=port]').value || '554';
+
+        const selectedOpt = appSel.options[appSel.selectedIndex];
+        let template = selectedOpt?.dataset?.template || '';
+
+        if (template) {
+            preview.value = template
+                .replace('{user}',     user)
+                .replace('{password}', password)
+                .replace('{ip}',       ip)
+                .replace('{port}',     port);
+        } else {
+            preview.value = ip ? `rtsp://${user}:${password}@${ip}:${port}/stream1` : '';
+        }
+    }
+
+    // Atualiza preview ao digitar
+    document.getElementById('add-cam-form').addEventListener('input', updateRtspPreview);
+</script>
+
+{% endblock %}

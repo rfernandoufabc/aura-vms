@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2 style="margin-bottom: 6px;">👥 Meus Grupos</h2>
+<p style="color: var(--text-muted); font-size: 0.85em; margin-bottom: 30px;">
+    Gerencie grupos para compartilhar suas câmeras com múltiplos usuários.
+</p>
+
+<!-- ── Criar novo grupo ── -->
+<div class="card">
+    <h3>➕ Novo Grupo</h3>
+    <form method="POST" action="/groups" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px;">
+        <div>
+            <label style="color:var(--text-muted);font-size:.78em;letter-spacing:1px;text-transform:uppercase;">Nome</label>
+            <input type="text" name="name" placeholder="ex: Família" required>
+        </div>
+        <div>
+            <label style="color:var(--text-muted);font-size:.78em;letter-spacing:1px;text-transform:uppercase;">Descrição</label>
+            <input type="text" name="description" placeholder="Opcional">
+        </div>
+        <div style="grid-column:1/-1;margin-top:4px;">
+            <button type="submit">Criar Grupo</button>
+        </div>
+    </form>
+</div>
+
+<!-- ── Lista de grupos ── -->
+<div class="card">
+    <h3>Grupos Cadastrados
+        <span style="color:var(--text-muted);font-weight:400;font-size:.75em;margin-left:10px;">
+            {{ groups | length }} grupo(s)
+        </span>
+    </h3>
+
+    {% if groups %}
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Nome</th>
+                {% if session.get('username') == 'admin' %}<th>Dono</th>{% endif %}
+                <th>Descrição</th>
+                <th style="text-align:center;">Membros</th>
+                <th style="text-align:center;">Câmeras</th>
+                <th style="text-align:right;">Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for g in groups %}
+            <tr>
+                <td style="color:var(--text-muted);font-size:.82em;">{{ g.id }}</td>
+                <td style="color:var(--neon-cyan);font-weight:600;">{{ g.name }}</td>
+                {% if session.get('username') == 'admin' %}
+                <td style="color:var(--amethyst-core);font-size:.85em;">
+                    {{ g.owner.username }}
+                </td>
+                {% endif %}
+                <td style="color:var(--text-muted);font-size:.85em;">{{ g.description or '—' }}</td>
+                <td style="text-align:center;">
+                    <span style="background:rgba(123,44,191,.15);border:1px solid rgba(123,44,191,.3);
+                                 color:var(--text-main);padding:3px 12px;border-radius:20px;font-size:.80em;">
+                        👤 {{ g.members | length }}
+                    </span>
+                </td>
+                <td style="text-align:center;">
+                    <span style="background:rgba(0,245,212,.08);border:1px solid rgba(0,245,212,.22);
+                                 color:var(--text-main);padding:3px 12px;border-radius:20px;font-size:.80em;">
+                        📷 {{ g.permissions | length }}
+                    </span>
+                </td>
+                <td>
+                    <div style="display:flex;gap:8px;justify-content:flex-end;">
+                        <a href="/groups/{{ g.id }}/edit" class="btn btn-outline"
+                           style="padding:5px 14px;font-size:.80em;">✏️ Editar</a>
+                        <form method="POST" action="/groups/{{ g.id }}/delete"
+                              onsubmit="return confirm('Remover grupo {{ g.name }}?')">
+                            <button type="submit"
+                                    style="padding:5px 14px;font-size:.80em;
+                                           background:linear-gradient(135deg,#6B0000,var(--danger));
+                                           box-shadow:0 0 10px rgba(255,0,85,.25);">
+                                🗑️ Excluir
+                            </button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div style="text-align:center;padding:50px 0;color:var(--text-muted);">
+        <p style="font-size:2.2em;margin-bottom:12px;">👥</p>
+        <p style="font-size:.95em;">Nenhum grupo criado ainda.</p>
+    </div>
+    {% endif %}
+</div>
+
+{% endblock %}

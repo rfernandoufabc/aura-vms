@@ -1,0 +1,295 @@
+{% extends "base.html" %}
+{% block content %}<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+        <a href="/cameras" class="btn btn-outline" style="padding:4px 12px;font-size:.78em;">← Voltar</a>
+        <h2 style="margin:0;">✏️ Editar Câmera</h2>
+    </div>
+    <p style="color:var(--text-muted);font-size:.85em;margin-bottom:30px;">
+        Câmera: <span style="color:var(--neon-cyan);">{{ cam.name or cam.model_name or ('#' ~ cam.id) }}</span>
+        <span style="color:var(--text-muted);">— {{ cam.ip_address }}</span>
+    </p>
+
+    <div class="card">
+        <h3>Dados da Câmera</h3>
+        <form method="POST" id="edit-cam-form"
+              style="display:grid;grid-template-columns:1fr 1fr;gap:0 24px;">
+
+            <input type="hidden" name="action" value="update">
+
+            <div style="grid-column:1/-1;">
+                <label style="color:var(--text-muted);font-size:.78em;letter-spacing:1px;text-transform:uppercase;">
+                    Nome da Câmera <span style="color:var(--text-muted);font-weight:400;">(identificação)</span>
+                </label>
+                <input type="text" name="name" value="{{ cam.name or '' }}"
+                       placeholder="ex: Portão Principal, Sala Servidores…">
+            </div>
+
+            <div>
+                <label style="color:var(--text-muted);font-size:.78em;letter-spacing:1px;text-transform:uppercase;">
+                    Marca / App
+                </label>
+                <select name="app_id" id="app-select" onchange="onAppChange()">
+                    <option value="">— Selecione o App —</option>
+                </select>
+            </div>
+
+            <div>
+                <label style="color:var(--text-muted);font-size:.78em;letter-spacing:1px;text-transform:uppercase;">
+                    Modelo
+                </label>
+                <select name="model_id" id="model-select">
+                    <option value="">— Selecione o Modelo —</option>
+                </select>
+            </div>
+
+            <div style="grid-column:1/-1;">
+                <label style="color:var(--text-muted);font-size:.78em;letter-spacing:1px;text-transform:uppercase;">
+                    Endereço IP / URL RTSP
+                </label>
+                <input type="text" name="ip_address" value="{{ cam.ip_address }}" required>
+            </div>
+
+            <div>
+                <label style="color:var(--text-muted);font-size:.78em;letter-spacing:1px;text-transform:uppercase;">
+                    Porta
+                </label>
+                <input type="text" name="port" value="{{ cam.port or '554' }}" placeholder="554">
+            </div>
+
+            <div><!-- espaço --></div>
+
+            <div>
+                <label style="color:var(--text-muted);font-size:.78em;letter-spacing:1px;text-transform:uppercase;">
+                    Usuário da Câmera
+                </label>
+                <input type="text" name="cam_username" value="{{ cam.cam_username or '' }}" placeholder="admin">
+            </div>
+
+            <div>
+                <label style="color:var(--text-muted);font-size:.78em;letter-spacing:1px;text-transform:uppercase;">
+                    Senha da Câmera
+                </label>
+                <input type="password" name="cam_password"
+                       placeholder="Deixe em branco para não alterar"
+                       value="{{ cam.cam_password or '' }}">
+            </div>
+
+            <div style="grid-column:1/-1;">
+                <label id="rtsp-preview-label"
+                       style="color:var(--text-muted);font-size:.78em;letter-spacing:1px;text-transform:uppercase;">
+                    Pré-visualização URL RTSP
+                </label>
+                <input type="text" id="rtsp-preview" readonly
+                       style="color:var(--neon-cyan);background:rgba(0,245,212,.04);border-color:rgba(0,245,212,.2);"
+                       placeholder="Preencha os campos acima para gerar a URL…">
+            </div>
+
+            <div style="grid-column:1/-1;margin-top:-4px;">
+                <label class="checkbox-group" style="margin-bottom:0;">
+                    <input type="checkbox" name="show_active_viewers" value="1"
+                           {% if cam.show_active_viewers %}checked{% endif %}>
+                    <span style="font-size:.85em;">👥 Exibir contador de visualizadores ativos</span>
+                </label>
+            </div>
+
+            <div style="grid-column:1/-1;display:flex;gap:12px;margin-top:4px;">
+                <button type="submit">💾 Salvar</button>
+                <a href="/cameras" class="btn btn-outline">Cancelar</a>
+            </div>
+        </form>
+    </div>
+
+    <!-- ── Permissões por Usuário ── -->
+    <div class="card" style="border-color:rgba(0,245,212,.2);">
+        <h3 style="color:var(--neon-cyan);">🔑 Permissões por Usuário</h3>
+
+        <form method="POST" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:20px;">
+            <input type="hidden" name="action" value="add_user_permission">
+            <div style="flex:1;min-width:160px;">
+                <label style="color:var(--text-muted);font-size:.75em;text-transform:uppercase;letter-spacing:1px;">Usuário</label>
+                <select name="user_id" style="margin-bottom:0;">
+                    <option value="">— Selecione —</option>
+                    {% for u in available_users %}
+                        <option value="{{ u.id }}">@{{ u.username }} ({{ u.first_name }} {{ u.last_name }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;padding-bottom:2px;">
+                <label style="display:flex;align-items:center;gap:6px;font-size:.82em;cursor:pointer;">
+                    <input type="checkbox" name="can_view" value="1" checked style="width:auto;margin:0;accent-color:var(--neon-cyan);">
+                    👁️ Ver
+                </label>
+                <label style="display:flex;align-items:center;gap:6px;font-size:.82em;cursor:pointer;">
+                    <input type="checkbox" name="can_control" value="1" style="width:auto;margin:0;accent-color:var(--amethyst-core);">
+                    🎮 Controlar
+                </label>
+            </div>
+            <button type="submit" style="padding:8px 16px;font-size:.82em;">➕ Adicionar</button>
+        </form>
+
+        {% if cam.permissions %}
+            {% for p in cam.permissions %}
+            <div style="display:flex;justify-content:space-between;align-items:center;
+                padding:10px 0;border-bottom:1px solid var(--glass-border);font-size:.87em;">
+                <span style="color:var(--text-main);font-weight:500;">@{{ p.user.username }}</span>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    {% if p.can_view %}
+                        <span style="background:rgba(0,245,212,.1);border:1px solid rgba(0,245,212,.3);
+                            color:var(--neon-cyan);padding:2px 8px;border-radius:10px;font-size:.78em;">👁️ Ver</span>
+                    {% endif %}
+                    {% if p.can_control %}
+                        <span style="background:rgba(157,78,221,.1);border:1px solid rgba(157,78,221,.3);
+                            color:var(--amethyst-core);padding:2px 8px;border-radius:10px;font-size:.78em;">🎮 Controlar</span>
+                    {% endif %}
+                    <form method="POST" onsubmit="return confirm('Remover permissão?')">
+                        <input type="hidden" name="action" value="remove_user_permission">
+                        <input type="hidden" name="perm_id" value="{{ p.id }}">
+                        <button type="submit" style="padding:3px 10px;font-size:.75em;
+                            background:rgba(255,0,85,.15);border:1px solid rgba(255,0,85,.35);
+                            color:var(--danger);box-shadow:none;">✕</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p style="color:var(--text-muted);font-size:.85em;text-align:center;padding:12px 0;">
+                Nenhuma permissão individual.
+            </p>
+        {% endif %}
+    </div>
+
+    <!-- ── Permissões por Grupo ── -->
+    <div class="card" style="border-color:rgba(157,78,221,.3);">
+        <h3>👥 Permissões por Grupo</h3>
+
+        <form method="POST" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:20px;">
+            <input type="hidden" name="action" value="add_group_permission">
+            <div style="flex:1;min-width:160px;">
+                <label style="color:var(--text-muted);font-size:.75em;text-transform:uppercase;letter-spacing:1px;">Grupo</label>
+                <select name="group_id" style="margin-bottom:0;">
+                    <option value="">— Selecione —</option>
+                    {% for g in available_groups %}
+                        <option value="{{ g.id }}">{{ g.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;padding-bottom:2px;">
+                <label style="display:flex;align-items:center;gap:6px;font-size:.82em;cursor:pointer;">
+                    <input type="checkbox" name="can_view" value="1" checked style="width:auto;margin:0;accent-color:var(--neon-cyan);">
+                    👁️ Ver
+                </label>
+                <label style="display:flex;align-items:center;gap:6px;font-size:.82em;cursor:pointer;">
+                    <input type="checkbox" name="can_control" value="1" style="width:auto;margin:0;accent-color:var(--amethyst-core);">
+                    🎮 Controlar
+                </label>
+            </div>
+            <button type="submit" style="padding:8px 16px;font-size:.82em;">➕ Adicionar</button>
+        </form>
+
+        {% if cam.group_permissions %}
+            {% for gp in cam.group_permissions %}
+            <div style="display:flex;justify-content:space-between;align-items:center;
+                padding:10px 0;border-bottom:1px solid var(--glass-border);font-size:.87em;">
+                <span style="color:var(--text-main);font-weight:500;">{{ gp.group.name }}</span>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    {% if gp.can_view %}
+                        <span style="background:rgba(0,245,212,.1);border:1px solid rgba(0,245,212,.3);
+                            color:var(--neon-cyan);padding:2px 8px;border-radius:10px;font-size:.78em;">👁️ Ver</span>
+                    {% endif %}
+                    {% if gp.can_control %}
+                        <span style="background:rgba(157,78,221,.1);border:1px solid rgba(157,78,221,.3);
+                            color:var(--amethyst-core);padding:2px 8px;border-radius:10px;font-size:.78em;">🎮 Controlar</span>
+                    {% endif %}
+                    <form method="POST" onsubmit="return confirm('Remover permissão de grupo?')">
+                        <input type="hidden" name="action" value="remove_group_permission">
+                        <input type="hidden" name="gp_id" value="{{ gp.id }}">
+                        <button type="submit" style="padding:3px 10px;font-size:.75em;
+                            background:rgba(255,0,85,.15);border:1px solid rgba(255,0,85,.35);
+                            color:var(--danger);box-shadow:none;">✕</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p style="color:var(--text-muted);font-size:.85em;text-align:center;padding:12px 0;">
+                Nenhum grupo com acesso.
+            </p>
+        {% endif %}
+    </div>
+
+<script>
+    // IDs atuais da câmera para pré-selecionar
+    const CURRENT_APP_ID   = {{ cam.app_id   or 'null' }};
+    const CURRENT_MODEL_ID = {{ cam.model_id or 'null' }};
+    let appsData = [];
+
+    fetch('/api/camera-apps')
+        .then(r => r.json())
+        .then(data => {
+            appsData = data;
+            const appSel = document.getElementById('app-select');
+
+            data.forEach(app => {
+                const opt = document.createElement('option');
+                opt.value = app.id;
+                opt.textContent = app.name;
+                opt.dataset.template = app.rtsp_template;
+                if (app.id === CURRENT_APP_ID) opt.selected = true;
+                appSel.appendChild(opt);
+            });
+
+            // Carrega modelos do app atual
+            if (CURRENT_APP_ID) {
+                loadModels(CURRENT_APP_ID, CURRENT_MODEL_ID);
+            }
+            updateRtspPreview();
+        });
+
+    function loadModels(appId, selectedModelId = null) {
+        const app = appsData.find(a => a.id === appId);
+        const modelSel = document.getElementById('model-select');
+        modelSel.innerHTML = '<option value="">— Selecione o Modelo —</option>';
+        if (app) {
+            app.models.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m.id;
+                opt.textContent = m.name;
+                if (m.id === selectedModelId) opt.selected = true;
+                modelSel.appendChild(opt);
+            });
+        }
+    }
+
+    function onAppChange() {
+        const appSel = document.getElementById('app-select');
+        const selectedId = parseInt(appSel.value);
+        loadModels(selectedId);
+        updateRtspPreview();
+    }
+
+    function updateRtspPreview() {
+        const appSel   = document.getElementById('app-select');
+        const form     = document.getElementById('edit-cam-form');
+        const preview  = document.getElementById('rtsp-preview');
+        const user     = form.querySelector('[name=cam_username]').value || '';
+        const password = form.querySelector('[name=cam_password]').value || '';
+        const ip       = form.querySelector('[name=ip_address]').value || '';
+        const port     = form.querySelector('[name=port]').value || '554';
+
+        const selectedOpt = appSel.options[appSel.selectedIndex];
+        let template = selectedOpt?.dataset?.template || '';
+
+        if (template) {
+            preview.value = template
+                .replace('{user}',     user)
+                .replace('{password}', password)
+                .replace('{ip}',       ip)
+                .replace('{port}',     port);
+        } else {
+            preview.value = ip ? `rtsp://${user}:${password}@${ip}:${port}/stream1` : '';
+        }
+    }
+
+    document.getElementById('edit-cam-form').addEventListener('input', updateRtspPreview);
+</script>
+
+{% endblock %}

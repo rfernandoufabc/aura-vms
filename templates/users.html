@@ -1,0 +1,275 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2 style="margin-bottom: 6px;">👥 Administração de Usuários</h2>
+<p style="color: var(--text-muted); font-size: 0.85em; letter-spacing: 0.5px; margin-bottom: 30px;">
+    Gerencie os usuários cadastrados no sistema.
+</p>
+
+<!-- ── Formulário de Cadastro ── -->
+<div class="card">
+    <h3>➕ Novo Usuário</h3>
+
+    <form method="POST" action="/users" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px;">
+
+        <div>
+            <label for="first_name" style="color: var(--text-muted); font-size: 0.78em; letter-spacing: 1px; text-transform: uppercase;">
+                Nome
+            </label>
+            <input type="text" id="first_name" name="first_name" placeholder="ex: João" required>
+        </div>
+
+        <div>
+            <label for="last_name" style="color: var(--text-muted); font-size: 0.78em; letter-spacing: 1px; text-transform: uppercase;">
+                Sobrenome
+            </label>
+            <input type="text" id="last_name" name="last_name" placeholder="ex: Silva">
+        </div>
+
+        <div>
+            <label for="username" style="color: var(--text-muted); font-size: 0.78em; letter-spacing: 1px; text-transform: uppercase;">
+                Nome de Usuário
+            </label>
+            <input type="text" id="username" name="username" placeholder="ex: joao.silva" required>
+        </div>
+
+        <div>
+            <label for="password" style="color: var(--text-muted); font-size: 0.78em; letter-spacing: 1px; text-transform: uppercase;">
+                Senha
+            </label>
+            <input type="password" id="password" name="password" placeholder="Mín. 8 caracteres" required>
+        </div>
+
+        <div style="grid-column: 1 / -1;">
+            <label for="email" style="color: var(--text-muted); font-size: 0.78em; letter-spacing: 1px; text-transform: uppercase;">
+                E-mail
+            </label>
+            <input type="email" id="email" name="email" placeholder="ex: joao@email.com">
+        </div>
+
+        <!-- Opção de verificação de e-mail -->
+        <div style="grid-column: 1 / -1; margin-top: -8px; margin-bottom: 8px;">
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;
+                          background: rgba(0,245,212,0.04); border: 1px solid rgba(0,245,212,0.15);
+                          border-radius: 8px; padding: 12px 16px;">
+                <input type="checkbox" id="email_verified" name="email_verified" value="1"
+                       checked
+                       style="width: auto; margin: 0; accent-color: var(--neon-cyan); transform: scale(1.3);">
+                <span style="font-size: 0.85em; color: var(--text-main);">
+                    ✅ Marcar e-mail como <strong style="color: var(--neon-cyan);">já verificado</strong>
+                    <span style="color: var(--text-muted); font-size: 0.88em; display: block; margin-top: 2px;">
+                        Desmarcado: envia e-mail de confirmação para o usuário (requer e-mail preenchido)
+                    </span>
+                </span>
+            </label>
+        </div>
+
+        <!-- Opção de admin — somente visível para o admin master -->
+        {% if session.get('username') == 'admin' %}
+        <div style="grid-column: 1 / -1; margin-top: 4px; margin-bottom: 8px;">
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;
+                          background: rgba(157,78,221,0.06); border: 1px solid rgba(157,78,221,0.25);
+                          border-radius: 8px; padding: 12px 16px;">
+                <input type="checkbox" id="is_admin" name="is_admin" value="1"
+                       style="width: auto; margin: 0; accent-color: var(--amethyst-core); transform: scale(1.3);">
+                <span style="font-size: 0.85em; color: var(--text-main);">
+                    👑 Conceder privilégios de <strong style="color: var(--amethyst-core);">Administrador</strong>
+                    <span style="color: var(--text-muted); font-size: 0.88em; display: block; margin-top: 2px;">
+                        Administradores podem gerenciar usuários e câmeras do sistema
+                    </span>
+                </span>
+            </label>
+        </div>
+        {% endif %}
+
+        <div style="grid-column: 1 / -1; margin-top: 4px;">
+            <button type="submit">Cadastrar Usuário</button>
+        </div>
+
+    </form>
+</div>
+
+<!-- ── Tabela de Usuários ── -->
+<div class="card">
+    <h3>Lista de Usuários
+        <span style="color: var(--text-muted); font-weight: 400; font-size: 0.75em;
+                     letter-spacing: 0.5px; margin-left: 10px;">
+            {{ users | length }} registrado(s)
+        </span>
+    </h3>
+
+    {% if users %}
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 50px;">#</th>
+                <th>Usuário</th>
+                <th>E-mail</th>
+                <th style="text-align: center;">Status</th>
+                <th style="text-align: center;">Papel</th>
+                <th style="text-align: center;">Câmeras</th>
+                <th style="text-align: center;">Permissões</th>
+                <th style="text-align: right;">Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td style="color: var(--text-muted); font-size: 0.82em;">{{ user.id }}</td>
+
+                <!-- Usuário -->
+                <td>
+                    <span style="color: var(--neon-cyan); font-weight: 600;">
+                        {{ user.username }}
+                    </span>
+                    {% if user.first_name or user.last_name %}
+                    <br>
+                    <span style="color: var(--text-muted); font-size: 0.78em;">
+                        {{ user.first_name or '' }} {{ user.last_name or '' }}
+                    </span>
+                    {% endif %}
+                </td>
+
+                <!-- E-mail -->
+                <td style="font-size: 0.85em;">
+                    {% if user.email %}
+                        <span style="color: var(--text-main);">{{ user.email }}</span>
+                    {% elif user.email_pending %}
+                        <span style="color: #FFD700;">{{ user.email_pending }}</span>
+                        <br>
+                        <span style="font-size: 0.75em; color: #FFD700; opacity: 0.8;">⏳ pendente</span>
+                    {% else %}
+                        <span style="color: var(--text-muted);">—</span>
+                    {% endif %}
+                </td>
+
+                <!-- Status de verificação -->
+                <td style="text-align: center;">
+                    {% if user.email_verified %}
+                        <span style="background: rgba(0,245,212,0.10);
+                                     border: 1px solid rgba(0,245,212,0.35);
+                                     color: var(--neon-cyan);
+                                     padding: 3px 10px; border-radius: 20px;
+                                     font-size: 0.78em; white-space: nowrap;">
+                            ✅ Verificado
+                        </span>
+                    {% elif user.email_pending %}
+                        <span style="background: rgba(255,215,0,0.08);
+                                     border: 1px solid rgba(255,215,0,0.30);
+                                     color: #FFD700;
+                                     padding: 3px 10px; border-radius: 20px;
+                                     font-size: 0.78em; white-space: nowrap;">
+                            ⏳ Aguardando
+                        </span>
+                    {% else %}
+                        <span style="background: rgba(255,0,85,0.08);
+                                     border: 1px solid rgba(255,0,85,0.30);
+                                     color: var(--danger);
+                                     padding: 3px 10px; border-radius: 20px;
+                                     font-size: 0.78em; white-space: nowrap;">
+                            ❌ Não verificado
+                        </span>
+                    {% endif %}
+                </td>
+
+                <!-- Papel -->
+                <td style="text-align: center;">
+                    {% if user.username == 'admin' %}
+                        <span style="background: rgba(157,78,221,0.20);
+                                     border: 1px solid rgba(157,78,221,0.50);
+                                     color: var(--amethyst-core);
+                                     padding: 3px 10px; border-radius: 20px;
+                                     font-size: 0.78em; white-space: nowrap;">
+                            👑 Master
+                        </span>
+                    {% elif user.is_admin %}
+                        <span style="background: rgba(157,78,221,0.10);
+                                     border: 1px solid rgba(157,78,221,0.30);
+                                     color: var(--amethyst-core);
+                                     padding: 3px 10px; border-radius: 20px;
+                                     font-size: 0.78em; white-space: nowrap;">
+                            🛡️ Admin
+                        </span>
+                    {% else %}
+                        <span style="background: rgba(255,255,255,0.04);
+                                     border: 1px solid rgba(255,255,255,0.10);
+                                     color: var(--text-muted);
+                                     padding: 3px 10px; border-radius: 20px;
+                                     font-size: 0.78em; white-space: nowrap;">
+                            👤 Usuário
+                        </span>
+                    {% endif %}
+                </td>
+
+                <!-- Câmeras -->
+                <td style="text-align: center;">
+                    <span style="background: rgba(123,44,191,0.15);
+                                 border: 1px solid rgba(123,44,191,0.30);
+                                 color: var(--text-main);
+                                 padding: 3px 12px; border-radius: 20px;
+                                 font-size: 0.80em; letter-spacing: 0.3px;">
+                        📷 {{ user.cameras_owned | length }}
+                    </span>
+                </td>
+
+                <!-- Permissões -->
+                <td style="text-align: center;">
+                    <span style="background: rgba(0,245,212,0.08);
+                                 border: 1px solid rgba(0,245,212,0.22);
+                                 color: var(--text-main);
+                                 padding: 3px 12px; border-radius: 20px;
+                                 font-size: 0.80em; letter-spacing: 0.3px;">
+                        🔑 {{ user.permissions | length }}
+                    </span>
+                </td>
+
+                <!-- Ações -->
+                <td>
+                    <div style="display: flex; gap: 8px; justify-content: flex-end; align-items: center;">
+
+                        {# Botão editar: bloqueado para admin comum tentar editar outro admin #}
+                        {% if session.get('username') == 'admin' or not user.is_admin %}
+                            <a href="/users/{{ user.id }}/edit"
+                               class="btn btn-outline"
+                               style="padding: 5px 14px; font-size: 0.80em;">
+                                ✏️ Editar
+                            </a>
+                        {% else %}
+                            <span style="padding: 5px 14px; font-size: 0.80em; color: var(--text-muted);
+                                         border: 1px solid rgba(255,255,255,0.08); border-radius: 8px;">
+                                🔒 Restrito
+                            </span>
+                        {% endif %}
+
+                        {# Botão excluir: oculto para conta master; bloqueado para admin comum excluir admin #}
+                        {% if user.username != 'admin' %}
+                            {% if session.get('username') == 'admin' or not user.is_admin %}
+                                <form method="POST" action="/users/{{ user.id }}/delete"
+                                      onsubmit="return confirm('Remover {{ user.username }}? Isso excluirá também câmeras e permissões vinculadas.')">
+                                    <button type="submit"
+                                            style="padding: 5px 14px; font-size: 0.80em;
+                                                   background: linear-gradient(135deg, #6B0000, var(--danger));
+                                                   box-shadow: 0 0 10px rgba(255,0,85,0.25);">
+                                        🗑️ Excluir
+                                    </button>
+                                </form>
+                            {% endif %}
+                        {% endif %}</div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% else %}
+    <div style="text-align: center; padding: 50px 0; color: var(--text-muted);">
+        <p style="font-size: 2.2em; margin-bottom: 12px;">👤</p>
+        <p style="font-size: 0.95em; letter-spacing: 0.5px;">Nenhum usuário cadastrado ainda.</p>
+        <p style="font-size: 0.82em;">Use o formulário acima para adicionar o primeiro usuário.</p>
+    </div>
+    {% endif %}
+
+</div>
+
+{% endblock %}
