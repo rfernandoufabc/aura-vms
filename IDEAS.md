@@ -236,7 +236,7 @@ O AuraVMS já entrega o pilar mais poderoso: **segurança para pais, com privaci
 - **FamilyShield** complementa a segurança física do AuraVMS com segurança digital.
 - **SelfHosted Teams** compartilha a mesma filosofia de "seus dados, sua rede".
 
-A viralidade natural ("qualquer pessoa roda uma instância e convida quem quiser") é o *moat* mais difícil de copiar.
+A viralidade natural ("qualquer pessoa roda uma instância e convida quem quiser") é a *barreira competitiva* mais difícil de copiar.
 
 ---
 
