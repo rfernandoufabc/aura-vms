@@ -1,4 +1,3 @@
-# routes/account_help.py
 import os
 import secrets
 from datetime import datetime, timedelta
@@ -58,34 +57,32 @@ def resend_confirmation():
 
     user = User.query.filter_by(email=email).first()
 
-    # Resposta genérica para não expor se o e-mail existe
     if not user or user.email_verified:
         flash('Se o e-mail estiver cadastrado e pendente de confirmação, '
               'você receberá o link em breve.', 'success')
         return redirect(url_for('account_help.account_help'))
 
-    # Invalida tokens anteriores do mesmo tipo
     AuthToken.query.filter_by(user_id=user.id, token_type='confirm', used=False).delete()
     db.session.flush()
 
     token_value = secrets.token_urlsafe(48)
     token = AuthToken(
-        token      = token_value,
-        user_id    = user.id,
-        token_type = 'confirm',
-        expires_at = datetime.utcnow() + timedelta(hours=24),
+        token=token_value,
+        user_id=user.id,
+        token_type='confirm',
+        expires_at=datetime.utcnow() + timedelta(hours=24),
     )
     db.session.add(token)
     db.session.commit()
 
-    base_url   = os.environ.get('BASE_URL', request.host_url.rstrip('/'))
+    base_url = os.environ.get('BASE_URL', request.host_url.rstrip('/'))
     confirm_url = f"{base_url}/confirm-email/{token_value}"
 
     try:
         send_email(
-            to_email  = user.email,
-            subject   = 'AuraVMS — Confirme seu e-mail',
-            html_body = _build_confirmation_email(user.username, confirm_url),
+            to_email=user.email,
+            subject='AuraVMS — Confirme seu e-mail',
+            html_body=_build_confirmation_email(user.username, confirm_url),
         )
     except Exception as exc:
         db.session.rollback()
@@ -107,28 +104,27 @@ def request_reset_password():
         flash('Se o e-mail estiver cadastrado, você receberá o link em breve.', 'success')
         return redirect(url_for('account_help.account_help'))
 
-    # Invalida tokens anteriores do mesmo tipo
     AuthToken.query.filter_by(user_id=user.id, token_type='reset', used=False).delete()
     db.session.flush()
 
     token_value = secrets.token_urlsafe(48)
     token = AuthToken(
-        token      = token_value,
-        user_id    = user.id,
-        token_type = 'reset',
-        expires_at = datetime.utcnow() + timedelta(hours=1),
+        token=token_value,
+        user_id=user.id,
+        token_type='reset',
+        expires_at=datetime.utcnow() + timedelta(hours=1),
     )
     db.session.add(token)
     db.session.commit()
 
-    base_url  = os.environ.get('BASE_URL', request.host_url.rstrip('/'))
+    base_url = os.environ.get('BASE_URL', request.host_url.rstrip('/'))
     reset_url = f"{base_url}/reset-password/{token_value}"
 
     try:
         send_email(
-            to_email  = user.email,
-            subject   = 'AuraVMS — Redefinição de senha',
-            html_body = _build_reset_email(user.username, reset_url),
+            to_email=user.email,
+            subject='AuraVMS — Redefinição de senha',
+            html_body=_build_reset_email(user.username, reset_url),
         )
     except Exception:
         db.session.rollback()
@@ -142,16 +138,16 @@ def request_reset_password():
 @account_help_bp.route('/confirm-email/<token_value>')
 def confirm_email(token_value: str):
     token = AuthToken.query.filter_by(
-        token      = token_value,
-        token_type = 'confirm',
-        used       = False,
+        token=token_value,
+        token_type='confirm',
+        used=False,
     ).first()
 
     if not token or token.expires_at < datetime.utcnow():
         flash('Link inválido ou expirado. Solicite um novo.', 'error')
         return redirect(url_for('account_help.account_help'))
 
-    token.used            = True
+    token.used = True
     token.user.email_verified = True
     db.session.commit()
 
@@ -162,9 +158,9 @@ def confirm_email(token_value: str):
 @account_help_bp.route('/reset-password/<token_value>', methods=['GET', 'POST'])
 def reset_password(token_value: str):
     token = AuthToken.query.filter_by(
-        token      = token_value,
-        token_type = 'reset',
-        used       = False,
+        token=token_value,
+        token_type='reset',
+        used=False,
     ).first()
 
     if not token or token.expires_at < datetime.utcnow():
@@ -175,7 +171,7 @@ def reset_password(token_value: str):
         return render_template('reset_password.html', token=token_value)
 
     password = request.form.get('password', '')
-    confirm  = request.form.get('password_confirm', '')
+    confirm = request.form.get('password_confirm', '')
 
     if len(password) < 8:
         flash('A senha deve ter no mínimo 8 caracteres.', 'error')

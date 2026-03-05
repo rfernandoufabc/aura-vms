@@ -6,6 +6,7 @@ from models import Camera, Permission, GroupPermission, GroupMember
 
 view_bp = Blueprint('view', __name__)
 
+
 def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
@@ -13,11 +14,11 @@ def login_required(f):
             from flask import redirect, url_for
             return redirect(url_for('login'))
         return f(*args, **kwargs)
+
     return decorated
 
-def get_accessible_cameras(user_id):
-    """Retorna câmeras agrupadas por dono que o usuário pode visualizar."""
 
+def get_accessible_cameras(user_id):
     own_cams = Camera.query.filter_by(owner_id=user_id).all()
 
     perms = Permission.query.filter_by(user_id=user_id, can_view=True).all()
@@ -60,38 +61,31 @@ def get_accessible_cameras(user_id):
 
 
 def build_rtsp_url(cam: Camera) -> str:
-    """Monta a URL RTSP correta baseada no app/modelo da câmera."""
-
-    # Prioridade 1: template do CameraApp cadastrado no banco
     if cam.app_id and cam.app and cam.app.rtsp_template:
         return (
             cam.app.rtsp_template
-            .replace('{user}',     cam.cam_username or '')
+            .replace('{user}', cam.cam_username or '')
             .replace('{password}', cam.cam_password or '')
-            .replace('{pass}',     cam.cam_password or '')
-            .replace('{ip}',       cam.ip_address)
-            .replace('{port}',     cam.port or '554')
+            .replace('{pass}', cam.cam_password or '')
+            .replace('{ip}', cam.ip_address)
+            .replace('{port}', cam.port or '554')
         )
 
-    # Prioridade 2: detecção pelo app_brand legado
     brand = (cam.app_brand or '').lower()
     user_part = ''
     if cam.cam_username:
         pwd = f":{cam.cam_password}" if cam.cam_password else ''
         user_part = f"{cam.cam_username}{pwd}@"
 
-    ip   = cam.ip_address
+    ip = cam.ip_address
     port = cam.port or '554'
 
     if 'v380' in brand or 'yoosee' in brand:
-        # V380 / Yoosee (Airwick, Lâmpada)
         return f"rtsp://{user_part}{ip}:{port}/live/ch00_0"
 
     if 'onvif' in brand or 'ptz' in brand or 'hikvision' in brand or 'dahua' in brand:
-        # Câmeras PTZ compatíveis com ONVIF
         return f"rtsp://{user_part}{ip}:{port}/onvif1"
 
-    # Fallback genérico
     return f"rtsp://{user_part}{ip}:{port}/stream1"
 
 
@@ -128,7 +122,6 @@ def add_cam(cam_id):
     user_id = session['user_id']
     cam = Camera.query.get_or_404(cam_id)
 
-    # ── Verifica acesso ──────────────────────────────────────────────
     has_access = cam.owner_id == user_id
     if not has_access:
         perm = Permission.query.filter_by(
@@ -149,15 +142,13 @@ def add_cam(cam_id):
     if not has_access:
         return jsonify({'ok': False, 'error': 'Sem permissão'}), 403
 
-    # ── Monta URL RTSP ───────────────────────────────────────────────
-    rtsp_url    = build_rtsp_url(cam)
+    rtsp_url = build_rtsp_url(cam)
     go2rtc_base = os.environ.get('GO2RTC_URL', 'http://localhost:1984').rstrip('/')
     stream_name = f"cam_{cam_id}"
 
     logging.info(f"[go2rtc] Registrando stream '{stream_name}' → {rtsp_url}")
 
     try:
-        # PUT /api/streams cria ou sobrescreve a stream (correto conforme OpenAPI)
         resp = req.put(
             f"{go2rtc_base}/api/streams",
             params={'name': stream_name, 'src': rtsp_url},

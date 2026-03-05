@@ -1,9 +1,12 @@
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
-from extensions import db
-from models import Camera, CameraApp, CameraModel, Permission, GroupPermission, User, Group
 from functools import wraps
 
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, jsonify
+
+from extensions import db
+from models import Camera, CameraApp, CameraModel, Permission, GroupPermission, User, Group
+
 cameras_bp = Blueprint('cameras', __name__)
+
 
 def login_required(f):
     @wraps(f)
@@ -11,12 +14,14 @@ def login_required(f):
         if not session.get('user_id'):
             return redirect(url_for('login'))
         return f(*args, **kwargs)
+
     return decorated
+
 
 def is_master_admin():
     return session.get('is_admin') and session.get('username') == 'admin'
 
-# ── API: lista apps/modelos para o formulário JS ──
+
 @cameras_bp.route('/api/camera-apps')
 @login_required
 def api_camera_apps():
@@ -28,28 +33,27 @@ def api_camera_apps():
         'models': [{'id': m.id, 'name': m.name} for m in a.models]
     } for a in apps])
 
-# ── Listar câmeras ──
+
 @cameras_bp.route('/cameras', methods=['GET', 'POST'])
 @login_required
 def cameras():
     user_id = session['user_id']
 
     if request.method == 'POST':
-        name        = request.form.get('name', '').strip()
-        app_id      = request.form.get('app_id', type=int)
-        model_id    = request.form.get('model_id', type=int)
-        ip_address  = request.form.get('ip_address', '').strip()
-        port        = request.form.get('port', '554').strip()
-        cam_user    = request.form.get('cam_username', '').strip()
-        cam_pass    = request.form.get('cam_password', '')
+        name = request.form.get('name', '').strip()
+        app_id = request.form.get('app_id', type=int)
+        model_id = request.form.get('model_id', type=int)
+        ip_address = request.form.get('ip_address', '').strip()
+        port = request.form.get('port', '554').strip()
+        cam_user = request.form.get('cam_username', '').strip()
+        cam_pass = request.form.get('cam_password', '')
         show_active = request.form.get('show_active_viewers') == '1'
 
         if not ip_address:
             flash("Endereço IP é obrigatório.", "error")
             return redirect(url_for('cameras.cameras'))
 
-        # Preenche app_brand/model_name a partir dos novos models
-        app_brand  = None
+        app_brand = None
         model_name = None
         if app_id:
             app_obj = CameraApp.query.get(app_id)
@@ -95,7 +99,6 @@ def cameras():
                            all_users=all_users)
 
 
-# ── Editar câmera ──
 @cameras_bp.route('/cameras/<int:cam_id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_camera(cam_id):
@@ -106,17 +109,13 @@ def edit_camera(cam_id):
         flash("Sem permissão.", "error")
         return redirect(url_for('cameras.cameras'))
 
-    all_users  = User.query.order_by(User.username).all()
+    all_users = User.query.order_by(User.username).all()
     all_groups = Group.query.filter_by(owner_id=cam.owner_id).order_by(Group.name).all()
 
-    # Usuários que já têm permissão
-    permitted_user_ids  = {p.user_id for p in cam.permissions}
-    # Grupos que já têm permissão
+    permitted_user_ids = {p.user_id for p in cam.permissions}
     permitted_group_ids = {gp.group_id for gp in cam.group_permissions}
 
-    # Usuários disponíveis (exceto o dono)
-    available_users  = [u for u in all_users  if u.id != cam.owner_id and u.id not in permitted_user_ids]
-    # Grupos disponíveis
+    available_users = [u for u in all_users if u.id != cam.owner_id and u.id not in permitted_user_ids]
     available_groups = [g for g in all_groups if g.id not in permitted_group_ids]
 
     if request.method == 'POST':
@@ -132,7 +131,6 @@ def edit_camera(cam_id):
                 cam.cam_password = new_pass
             cam.show_active_viewers = request.form.get('show_active_viewers') == '1'
 
-            # Atualiza app/modelo pelos IDs
             app_id = request.form.get('app_id', type=int)
             model_id = request.form.get('model_id', type=int)
             cam.app_id = app_id
@@ -144,9 +142,9 @@ def edit_camera(cam_id):
             flash("Câmera atualizada!", "success")
 
         elif action == 'add_user_permission':
-            uid       = request.form.get('user_id', type=int)
-            can_view  = request.form.get('can_view')    == '1'
-            can_ctrl  = request.form.get('can_control') == '1'
+            uid = request.form.get('user_id', type=int)
+            can_view = request.form.get('can_view') == '1'
+            can_ctrl = request.form.get('can_control') == '1'
             if uid and not Permission.query.filter_by(camera_id=cam_id, user_id=uid).first():
                 db.session.add(Permission(
                     camera_id=cam_id, user_id=uid,
@@ -164,8 +162,8 @@ def edit_camera(cam_id):
                 flash("Permissão removida.", "success")
 
         elif action == 'add_group_permission':
-            gid      = request.form.get('group_id', type=int)
-            can_view = request.form.get('can_view')    == '1'
+            gid = request.form.get('group_id', type=int)
+            can_view = request.form.get('can_view') == '1'
             can_ctrl = request.form.get('can_control') == '1'
             if gid and not GroupPermission.query.filter_by(camera_id=cam_id, group_id=gid).first():
                 db.session.add(GroupPermission(
@@ -191,7 +189,6 @@ def edit_camera(cam_id):
                            available_groups=available_groups)
 
 
-# ── Deletar câmera ──
 @cameras_bp.route('/cameras/<int:cam_id>/delete', methods=['POST'])
 @login_required
 def delete_camera(cam_id):
@@ -208,7 +205,6 @@ def delete_camera(cam_id):
     return redirect(url_for('cameras.cameras'))
 
 
-# ── Transferir câmera (master admin) ──
 @cameras_bp.route('/cameras/<int:cam_id>/transfer', methods=['POST'])
 @login_required
 def transfer_camera(cam_id):

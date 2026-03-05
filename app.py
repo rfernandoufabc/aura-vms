@@ -1,13 +1,13 @@
-# app.py — alterar as linhas iniciais
-from flask import Flask, render_template, request, redirect, url_for, flash, session
 from functools import wraps
-from extensions import db  # ← importar de extensions
-from oauth_mail import send_email
-from werkzeug.security import generate_password_hash, check_password_hash
+
+from flask import Flask, render_template, request, redirect, url_for, flash, session
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
-from routes.cameras import cameras_bp
-from routes.view import view_bp
+from werkzeug.security import generate_password_hash, check_password_hash
+
+from extensions import db
+from oauth_mail import send_email
 from routes.account_help import account_help_bp
+from routes.view import view_bp
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///vms.db'
@@ -16,23 +16,19 @@ app.config['SECRET_KEY'] = 'sua-chave-secreta-aqui'
 
 db.init_app(app)
 
-EMAIL_SERIALIZER    = URLSafeTimedSerializer(app.config['SECRET_KEY'])
+EMAIL_SERIALIZER = URLSafeTimedSerializer(app.config['SECRET_KEY'])
 EMAIL_TOKEN_MAX_AGE = 1800
 
 ADMIN_DEFAULT_PASSWORD = 'admin123'
 
 from models import User, Camera, Permission, Group, GroupMember, GroupPermission
 
-# ── Blueprints APÓS db e models estarem prontos ──
 from routes.cameras import cameras_bp
+
 app.register_blueprint(cameras_bp)
 app.register_blueprint(view_bp)
 app.register_blueprint(account_help_bp)
 
-
-# ─────────────────────────────────────────────────────────────
-#  HELPERS
-# ─────────────────────────────────────────────────────────────
 
 def _generate_email_token(email: str) -> str:
     return EMAIL_SERIALIZER.dumps(email, salt='email-confirm')
@@ -64,6 +60,7 @@ def login_required(f):
             flash("Faça login para continuar.", "error")
             return redirect(url_for('login'))
         return f(*args, **kwargs)
+
     return decorated
 
 
@@ -74,6 +71,7 @@ def admin_required(f):
             flash("Acesso restrito a administradores.", "error")
             return redirect(url_for('dashboard'))
         return f(*args, **kwargs)
+
     return decorated
 
 
@@ -95,42 +93,42 @@ def _seed_admin():
         db.session.add(admin)
         db.session.commit()
 
+
 def _seed_default_users():
-    """Cria usuários padrão da turma caso ainda não existam."""
     default_users = [
         {
             'first_name': 'Beatriz',
-            'last_name':  'Fugagnolli Giacon',
-            'username':   'beatriz.giacon',
-            'email':      'beatriz.giacon@aluno.ufabc.edu.br',
-            'password':   '11202410010',
+            'last_name': 'Fugagnolli Giacon',
+            'username': 'beatriz.giacon',
+            'email': 'beatriz.giacon@aluno.ufabc.edu.br',
+            'password': '11202410010',
         },
         {
             'first_name': 'Jonathan',
-            'last_name':  'Ferreira',
-            'username':   'j.ferreira',
-            'email':      'j.ferreira@aluno.ufabc.edu.br',
-            'password':   '11201921823',
+            'last_name': 'Ferreira',
+            'username': 'j.ferreira',
+            'email': 'j.ferreira@aluno.ufabc.edu.br',
+            'password': '11201921823',
         },
         {
             'first_name': 'Raphael',
-            'last_name':  'Correa do Nascimento',
-            'username':   'r.correa',
-            'email':      'r.correa@aluno.ufabc.edu.br',
-            'password':   '11201811432',
+            'last_name': 'Correa do Nascimento',
+            'username': 'r.correa',
+            'email': 'r.correa@aluno.ufabc.edu.br',
+            'password': '11201811432',
         },
         {
             'first_name': 'Rafael',
-            'last_name':  'Fernando Pereira',
-            'username':   'r.fernando',
-            'email':      'r.fernando@aluno.ufabc.edu.br',
-            'password':   '11201811401',
+            'last_name': 'Fernando Pereira',
+            'username': 'r.fernando',
+            'email': 'r.fernando@aluno.ufabc.edu.br',
+            'password': '11201811401',
         },
     ]
 
     for u in default_users:
         if User.query.filter_by(username=u['username']).first():
-            continue  # já existe, pula
+            continue
 
         new_user = User(
             username=u['username'],
@@ -145,8 +143,8 @@ def _seed_default_users():
 
     db.session.commit()
 
+
 def _seed_camera_apps():
-    """Popula apps e modelos de câmera padrão."""
     from models import CameraApp, CameraModel
 
     apps_data = [
@@ -159,7 +157,7 @@ def _seed_camera_apps():
             'name': 'Yoosee',
             'rtsp_template': 'rtsp://{user}:{password}@{ip}:{port}/onvif1',
             'models': ['LeBoss']
-        },{
+        }, {
             'name': 'Genérico / ONVIF',
             'rtsp_template': 'rtsp://{user}:{password}@{ip}:{port}/stream1',
             'models': ['Genérico']
@@ -182,9 +180,6 @@ def _seed_camera_apps():
 
     db.session.commit()
 
-# ─────────────────────────────────────────────────────────────
-#  AUTENTICAÇÃO
-# ─────────────────────────────────────────────────────────────
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -207,17 +202,17 @@ def login():
                 flash("Confirme seu e-mail antes de fazer login.", "error")
                 return redirect(url_for('login'))
 
-            session['user_id']  = user.id
+            session['user_id'] = user.id
             session['username'] = user.username
             session['is_admin'] = user.is_admin
             return redirect(url_for('dashboard'))
 
         elif action == 'register':
-            first_name       = request.form.get('first_name', '').strip()
-            last_name        = request.form.get('last_name', '').strip()
-            email            = request.form.get('email', '').strip().lower()
-            username         = request.form.get('username', '').strip()
-            password         = request.form.get('password', '')
+            first_name = request.form.get('first_name', '').strip()
+            last_name = request.form.get('last_name', '').strip()
+            email = request.form.get('email', '').strip().lower()
+            username = request.form.get('username', '').strip()
+            password = request.form.get('password', '')
             confirm_password = request.form.get('confirm_password', '')
 
             if password != confirm_password:
@@ -233,7 +228,7 @@ def login():
                 return redirect(url_for('login'))
 
             if User.query.filter_by(email=email).first() or \
-               User.query.filter_by(email_pending=email).first():
+                    User.query.filter_by(email_pending=email).first():
                 flash("E-mail já cadastrado.", "error")
                 return redirect(url_for('login'))
 
@@ -276,8 +271,8 @@ def confirm_email(token):
         flash("Nenhum cadastro pendente para este e-mail.", "error")
         return redirect(url_for('login'))
 
-    user.email          = email
-    user.email_pending  = None
+    user.email = email
+    user.email_pending = None
     user.email_verified = True
     db.session.commit()
     flash("E-mail confirmado com sucesso! Faça o login.", "success")
@@ -287,7 +282,7 @@ def confirm_email(token):
 @app.route('/resend-confirmation', methods=['POST'])
 def resend_confirmation():
     email = request.form.get('email', '').strip().lower()
-    user  = User.query.filter_by(email_pending=email, email_verified=False).first()
+    user = User.query.filter_by(email_pending=email, email_verified=False).first()
     if user:
         token = _generate_email_token(email)
         _send_confirmation_email(email, user.username, token)
@@ -295,29 +290,21 @@ def resend_confirmation():
     return redirect(url_for('login'))
 
 
-# ─────────────────────────────────────────────────────────────
-#  DASHBOARD
-# ─────────────────────────────────────────────────────────────
-
 @app.route('/')
 @login_required
 def dashboard():
     return render_template('dashboard.html')
 
 
-# ─────────────────────────────────────────────────────────────
-#  CRUD — USUÁRIOS (somente admin)
-# ─────────────────────────────────────────────────────────────
-
 @app.route('/users', methods=['GET', 'POST'])
 @admin_required
 def users():
     if request.method == 'POST':
-        first_name     = request.form.get('first_name', '').strip()
-        last_name      = request.form.get('last_name', '').strip()
-        username       = request.form.get('username', '').strip()
-        password       = request.form.get('password', '')
-        email          = request.form.get('email', '').strip().lower()
+        first_name = request.form.get('first_name', '').strip()
+        last_name = request.form.get('last_name', '').strip()
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '')
+        email = request.form.get('email', '').strip().lower()
         email_verified = request.form.get('email_verified') == '1'
 
         make_admin = False
@@ -342,10 +329,10 @@ def users():
 
         if email:
             if email_verified:
-                new_user.email          = email
+                new_user.email = email
                 new_user.email_verified = True
             else:
-                new_user.email_pending  = email
+                new_user.email_pending = email
                 new_user.email_verified = False
                 token = _generate_email_token(email)
                 _send_confirmation_email(email, username, token)
@@ -371,11 +358,11 @@ def edit_user(user_id):
         return redirect(url_for('users'))
 
     if request.method == 'POST':
-        first_name     = request.form.get('first_name', '').strip()
-        last_name      = request.form.get('last_name', '').strip()
-        new_username   = request.form.get('username', '').strip()
-        password       = request.form.get('password', '')
-        email          = request.form.get('email', '').strip().lower()
+        first_name = request.form.get('first_name', '').strip()
+        last_name = request.form.get('last_name', '').strip()
+        new_username = request.form.get('username', '').strip()
+        password = request.form.get('password', '')
+        email = request.form.get('email', '').strip().lower()
         force_verified = request.form.get('force_verified') == '1'
 
         if is_master_admin() and user.username != 'admin':
@@ -391,7 +378,7 @@ def edit_user(user_id):
             user.username = new_username
 
         user.first_name = first_name
-        user.last_name  = last_name
+        user.last_name = last_name
 
         if password:
             user.password_hash = generate_password_hash(password)
@@ -404,17 +391,17 @@ def edit_user(user_id):
             email_changed = (email != user.email and email != user.email_pending)
             if email_changed:
                 if force_verified:
-                    user.email          = email
-                    user.email_pending  = None
+                    user.email = email
+                    user.email_pending = None
                     user.email_verified = True
                 else:
-                    user.email_pending  = email
+                    user.email_pending = email
                     user.email_verified = False
                     token = _generate_email_token(email)
                     _send_confirmation_email(email, user.username, token)
             elif force_verified and not user.email_verified:
-                user.email          = user.email_pending or user.email
-                user.email_pending  = None
+                user.email = user.email_pending or user.email
+                user.email_pending = None
                 user.email_verified = True
 
         db.session.commit()
@@ -453,17 +440,13 @@ def delete_user(user_id):
     return redirect(url_for('users'))
 
 
-# ─────────────────────────────────────────────────────────────
-#  CRUD — GRUPOS (por usuário; master vê todos)
-# ─────────────────────────────────────────────────────────────
-
 @app.route('/groups', methods=['GET', 'POST'])
 @login_required
 def groups():
     user_id = session['user_id']
 
     if request.method == 'POST':
-        name        = request.form.get('name', '').strip()
+        name = request.form.get('name', '').strip()
         description = request.form.get('description', '').strip()
 
         if not name:
@@ -481,11 +464,11 @@ def groups():
         return redirect(url_for('groups'))
 
     if is_master_admin():
-        all_groups = Group.query.join(User, Group.owner_id == User.id)\
-                         .order_by(User.username, Group.name).all()
+        all_groups = Group.query.join(User, Group.owner_id == User.id) \
+            .order_by(User.username, Group.name).all()
     else:
-        all_groups = Group.query.filter_by(owner_id=user_id)\
-                         .order_by(Group.name).all()
+        all_groups = Group.query.filter_by(owner_id=user_id) \
+            .order_by(Group.name).all()
 
     all_users = User.query.order_by(User.username).all() if is_master_admin() else []
     return render_template('groups.html', groups=all_groups, all_users=all_users)
@@ -500,15 +483,15 @@ def edit_group(group_id):
         flash("Você não tem permissão para editar este grupo.", "error")
         return redirect(url_for('groups'))
 
-    owner         = User.query.get(group.owner_id)
+    owner = User.query.get(group.owner_id)
     owner_cameras = Camera.query.filter_by(owner_id=group.owner_id).all()
-    all_users     = User.query.order_by(User.username).all()
+    all_users = User.query.order_by(User.username).all()
 
     if request.method == 'POST':
         action = request.form.get('action')
 
         if action == 'update_info':
-            name        = request.form.get('name', '').strip()
+            name = request.form.get('name', '').strip()
             description = request.form.get('description', '').strip()
             if not name:
                 flash("O nome do grupo é obrigatório.", "error")
@@ -517,7 +500,7 @@ def edit_group(group_id):
             if existing and existing.id != group_id:
                 flash("Já existe um grupo com esse nome.", "error")
                 return redirect(url_for('edit_group', group_id=group_id))
-            group.name        = name
+            group.name = name
             group.description = description
             db.session.commit()
             flash("Grupo atualizado!", "success")
@@ -541,8 +524,8 @@ def edit_group(group_id):
                 flash("Membro removido.", "success")
 
         elif action == 'add_camera':
-            camera_id   = request.form.get('camera_id', type=int)
-            can_view    = request.form.get('can_view')    == '1'
+            camera_id = request.form.get('camera_id', type=int)
+            can_view = request.form.get('can_view') == '1'
             can_control = request.form.get('can_control') == '1'
             if camera_id:
                 cam = Camera.query.get(camera_id)
@@ -567,9 +550,9 @@ def edit_group(group_id):
 
         return redirect(url_for('edit_group', group_id=group_id))
 
-    member_ids    = {m.user_id for m in group.members}
-    camera_ids    = {gp.camera_id for gp in group.permissions}
-    non_members   = [u for u in all_users   if u.id not in member_ids and u.id != group.owner_id]
+    member_ids = {m.user_id for m in group.members}
+    camera_ids = {gp.camera_id for gp in group.permissions}
+    non_members = [u for u in all_users if u.id not in member_ids and u.id != group.owner_id]
     avail_cameras = [c for c in owner_cameras if c.id not in camera_ids]
 
     return render_template('edit_group.html',
@@ -593,10 +576,6 @@ def delete_group(group_id):
     flash(f"Grupo '{group.name}' removido!", "success")
     return redirect(url_for('groups'))
 
-
-# ─────────────────────────────────────────────────────────────
-#  INICIALIZAÇÃO
-# ─────────────────────────────────────────────────────────────
 
 with app.app_context():
     db.create_all()
