@@ -1,7 +1,8 @@
-from flask import Blueprint, render_template, session, jsonify
 from functools import wraps
+
+from flask import Blueprint, session, jsonify
+
 from models import Camera, Permission, GroupPermission, GroupMember
-from extensions import db
 
 view_bp = Blueprint('view', __name__)
 
@@ -16,7 +17,6 @@ def login_required(f):
 
 def get_accessible_cameras(user_id):
     """Retorna câmeras agrupadas por dono que o usuário pode visualizar."""
-    from models import User
 
     own_cams = Camera.query.filter_by(owner_id=user_id).all()
 
@@ -99,17 +99,20 @@ def build_rtsp_url(cam: Camera) -> str:
 @login_required
 def view():
     import os
-    from flask import request
+    import re
+    from flask import request, session, render_template
     user_id = session['user_id']
     grouped_cameras = get_accessible_cameras(user_id)
 
-    # Porta do go2rtc (pode ser sobrescrita por variável de ambiente)
-    go2rtc_port = os.environ.get('GO2RTC_PORT', '1984')
+    req_hostname = request.host.split(':')[0]
 
-    # Usa o mesmo host que o cliente usou para acessar o Flask,
-    # mas substitui a porta pela do go2rtc
-    req_host = request.host.split(':')[0]  # ex: "192.168.137.1" ou "localhost"
-    go2rtc_url = f"http://{req_host}:{go2rtc_port}"
+    padrao_ip = re.compile(r'^\d{1,3}(\.\d{1,3}){3}$')
+
+    if padrao_ip.match(req_hostname) or req_hostname == 'localhost':
+        go2rtc_port = os.environ.get('GO2RTC_PORT', '1984')
+        go2rtc_url = f"http://{req_hostname}:{go2rtc_port}"
+    else:
+        go2rtc_url = f"https://video.{req_hostname}"
 
     return render_template('view.html',
                            grouped_cameras=grouped_cameras,
