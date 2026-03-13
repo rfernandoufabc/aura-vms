@@ -50,7 +50,7 @@ def _send_confirmation_email(to_email: str, username: str, token: str):
     <p><a href="{confirm_url}">{confirm_url}</a></p>
     <p>O link expira em 30 minutos.</p>
     """
-    send_email(to_email, 'AuraVMS — Confirme seu e-mail', html)
+    send_email(to_email, 'Vizy — Confirme seu e-mail', html)
 
 
 def login_required(f):

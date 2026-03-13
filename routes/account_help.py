@@ -14,7 +14,7 @@ account_help_bp = Blueprint('account_help', __name__)
 def _build_confirmation_email(username: str, confirm_url: str) -> str:
     return f"""
     <div style="font-family:sans-serif;max-width:480px;margin:auto;">
-        <h2>Confirme seu e-mail — AuraVMS</h2>
+        <h2>Confirme seu e-mail — Vizy</h2>
         <p>Olá, <strong>@{username}</strong>!</p>
         <p>Clique no botão abaixo para ativar sua conta:</p>
         <a href="{confirm_url}"
@@ -31,7 +31,7 @@ def _build_confirmation_email(username: str, confirm_url: str) -> str:
 def _build_reset_email(username: str, reset_url: str) -> str:
     return f"""
     <div style="font-family:sans-serif;max-width:480px;margin:auto;">
-        <h2>Redefinição de senha — AuraVMS</h2>
+        <h2>Redefinição de senha — Vizy</h2>
         <p>Olá, <strong>@{username}</strong>!</p>
         <p>Clique no botão abaixo para criar uma nova senha:</p>
         <a href="{reset_url}"
@@ -81,7 +81,7 @@ def resend_confirmation():
     try:
         send_email(
             to_email=user.email,
-            subject='AuraVMS — Confirme seu e-mail',
+            subject='Vizy — Confirme seu e-mail',
             html_body=_build_confirmation_email(user.username, confirm_url),
         )
     except Exception as exc:
@@ -123,7 +123,7 @@ def request_reset_password():
     try:
         send_email(
             to_email=user.email,
-            subject='AuraVMS — Redefinição de senha',
+            subject='Vizy — Redefinição de senha',
             html_body=_build_reset_email(user.username, reset_url),
         )
     except Exception:
