@@ -16,7 +16,7 @@
 ## Tendências globais consideradas (Mar 2026)
 
 - **AI Agents / agentic workflows** — apps que *executam* tarefas, não apenas sugerem.
-- **Privacidade local-first** — processamento no dispositivo ou na rede doméstica (como o AuraVMS já faz).
+- **Privacidade local-first** — processamento no dispositivo ou na rede doméstica (como o Vizy já faz).
 - **Saúde digital preventiva** — wearables, sinais vitais, coaching de hábitos.
 - **Fintech embutido** — pagamento, parcelamento e conciliação dentro de qualquer app.
 - **Identidade sem senha (passkeys)** — autenticação biométrica e antifraude.
@@ -67,7 +67,7 @@
 ## 3. 🛡️ Sell Parents — Segurança / Controle / Paz de Espírito
 
 ### 3.1 SafeMesh — Vigilância Descentralizada de Vizinhança
-- **O que é:** App "Plug and Play" para pais montarem uma rede de segurança fechada e privada entre vizinhos de confiança (extensão natural do AuraVMS).
+- **O que é:** App "Plug and Play" para pais montarem uma rede de segurança fechada e privada entre vizinhos de confiança (extensão natural do Vizy).
 - **Como funciona:** Integra câmeras residenciais e tags/wearables de crianças e pets em servidor local. IA roda localmente (sem nuvem) e detecta anomalias: cachorro fugiu, criança saiu do perímetro seguro → alerta imediato e silencioso para a rede de pais.
 - **Por que vende:** Explora o medo primal de perder quem se ama, blindado pelo argumento da privacidade absoluta dos dados.
 
@@ -226,14 +226,14 @@ Use este framework para validar cada ideia antes de construir:
 
 ---
 
-## Conexão com o AuraVMS
+## Conexão com o Vizy
 
-O AuraVMS já entrega o pilar mais poderoso: **segurança para pais, com privacidade local-first**. Várias ideias acima podem se integrar ou se inspirar nele:
+O Vizy já entrega o pilar mais poderoso: **segurança para pais, com privacidade local-first**. Várias ideias acima podem se integrar ou se inspirar nele:
 
-- **SafeMesh** é a evolução direta — transformar o AuraVMS em rede de vizinhança colaborativa.
-- **PetVault** pode usar as câmeras do AuraVMS para detecção de fuga de pets.
+- **SafeMesh** é a evolução direta — transformar o Vizy em rede de vizinhança colaborativa.
+- **PetVault** pode usar as câmeras do Vizy para detecção de fuga de pets.
 - **SchoolGuard** pode integrar câmeras da escola à mesma rede de confiança dos pais.
-- **FamilyShield** complementa a segurança física do AuraVMS com segurança digital.
+- **FamilyShield** complementa a segurança física do Vizy com segurança digital.
 - **SelfHosted Teams** compartilha a mesma filosofia de "seus dados, sua rede".
 
 A viralidade natural ("qualquer pessoa roda uma instância e convida quem quiser") é a *barreira competitiva* mais difícil de copiar.
