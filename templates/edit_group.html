@@ -98,10 +98,6 @@
                     <input type="checkbox" name="can_view" value="1" checked>
                     <span style="font-size:.85em;">👁️ Visualizar</span>
                 </label>
-                <label class="checkbox-group" style="margin:0;flex:1;">
-                    <input type="checkbox" name="can_control" value="1">
-                    <span style="font-size:.85em;">🎮 Controlar</span>
-                </label>
             </div>
             <button type="submit">➕ Adicionar Câmera</button>
         </form>
@@ -120,12 +116,9 @@
                         {{ gp.camera.ip_address }}
                     </span>
                     <br>
-                    <span style="font-size:.80em;">
+                    <span>
                         {% if gp.can_view %}
                         <span style="color:var(--neon-cyan);">👁️ Ver</span>
-                        {% endif %}
-                        {% if gp.can_control %}
-                        <span style="color:var(--amethyst-core);margin-left:6px;">🎮 Controlar</span>
                         {% endif %}
                     </span>
                 </div>

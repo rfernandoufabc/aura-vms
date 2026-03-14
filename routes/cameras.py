@@ -144,11 +144,10 @@ def edit_camera(cam_id):
         elif action == 'add_user_permission':
             uid = request.form.get('user_id', type=int)
             can_view = request.form.get('can_view') == '1'
-            can_ctrl = request.form.get('can_control') == '1'
             if uid and not Permission.query.filter_by(camera_id=cam_id, user_id=uid).first():
                 db.session.add(Permission(
                     camera_id=cam_id, user_id=uid,
-                    can_view=can_view, can_control=can_ctrl
+                    can_view=can_view
                 ))
                 db.session.commit()
                 flash("Permissão adicionada!", "success")
@@ -164,11 +163,10 @@ def edit_camera(cam_id):
         elif action == 'add_group_permission':
             gid = request.form.get('group_id', type=int)
             can_view = request.form.get('can_view') == '1'
-            can_ctrl = request.form.get('can_control') == '1'
             if gid and not GroupPermission.query.filter_by(camera_id=cam_id, group_id=gid).first():
                 db.session.add(GroupPermission(
                     camera_id=cam_id, group_id=gid,
-                    can_view=can_view, can_control=can_ctrl
+                    can_view=can_view
                 ))
                 db.session.commit()
                 flash("Permissão de grupo adicionada!", "success")

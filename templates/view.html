@@ -262,6 +262,104 @@
             font-weight: 600;
         }
 
+        /* ── Viewer counter ── */
+        .viewer-bar {
+            padding: 6px 14px;
+            border-top: 1px solid var(--glass-border);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            user-select: none;
+            transition: background .2s;
+        }
+
+        .viewer-bar:hover {
+            background: rgba(157, 78, 221, .05);
+        }
+
+        .viewer-count {
+            font-size: .72em;
+            color: var(--text-muted);
+            flex: 1;
+        }
+
+        .viewer-count .count-num {
+            color: var(--neon-cyan);
+            font-weight: 700;
+        }
+
+        .viewer-list {
+            padding: 4px 14px 10px;
+            border-top: 1px dashed rgba(157,78,221,.15);
+            display: none;
+        }
+
+        .viewer-list.open {
+            display: block;
+        }
+
+        .viewer-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(157,78,221,.1);
+            border: 1px solid rgba(157,78,221,.2);
+            border-radius: 20px;
+            padding: 2px 8px;
+            font-size: .72em;
+            color: var(--text-muted);
+            margin: 2px 3px 2px 0;
+        }
+
+        /* ── Grupos no sidebar ── */
+        .sidebar-section-divider {
+            border: none;
+            border-top: 1px solid var(--glass-border);
+            margin: 14px 0 12px;
+        }
+
+        .group-selector-item {
+            background: rgba(157,78,221,.06);
+            border: 1px solid rgba(157,78,221,.2);
+            border-radius: 8px;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+        }
+
+        .group-selector-name {
+            font-size: .82em;
+            font-weight: 600;
+            color: var(--amethyst-core);
+            margin-bottom: 6px;
+        }
+
+        .group-cam-count {
+            font-size: .72em;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .btn-open-group {
+            background: rgba(157,78,221,.18);
+            border: 1px solid rgba(157,78,221,.4);
+            color: var(--amethyst-core);
+            border-radius: 6px;
+            padding: 5px 10px;
+            font-size: .78em;
+            cursor: pointer;
+            font-family: 'Poppins', sans-serif;
+            font-weight: 600;
+            width: 100%;
+            transition: all .2s;
+        }
+
+        .btn-open-group:hover {
+            background: rgba(157,78,221,.3);
+            transform: none;
+            box-shadow: 0 0 10px rgba(157,78,221,.3);
+        }
+
         #empty-state {
             text-align: center;
             padding: 80px 0;
@@ -440,6 +538,36 @@
                     Nenhuma câmera disponível.
                 </p>
             {% endif %}
+
+            <!-- ── Grupos de câmeras ── -->
+            {% if accessible_groups %}
+            <hr class="sidebar-section-divider">
+            <h3 style="font-size:.78em;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:12px;">
+                📂 Grupos
+            </h3>
+            {% for ag in accessible_groups %}
+            <div class="group-selector-item">
+                <div class="group-selector-name">{{ ag.group.name }}</div>
+                {% if ag.group.description %}
+                <div class="group-cam-count" style="margin-bottom:4px;">{{ ag.group.description }}</div>
+                {% endif %}
+                <div class="group-cam-count">
+                    {{ ag.cameras | length }} câmera{{ 's' if ag.cameras | length != 1 else '' }}
+                </div>
+                <button class="btn-open-group"
+                        onclick="openGroup([
+                            {% for cam in ag.cameras %}
+                            {id:{{ cam.id }},
+                             label:'{{ (cam.name or cam.model_name or cam.app_brand or ('Câmera ' ~ cam.id)) | e }}',
+                             ip:'{{ cam.ip_address }}:{{ cam.port or '554' }}',
+                             owner:'Grupo {{ ag.group.name | e }}'}{% if not loop.last %},{% endif %}
+                            {% endfor %}
+                        ])">
+                    ▶ Abrir Todas
+                </button>
+            </div>
+            {% endfor %}
+            {% endif %}
         </div>
 
         <!-- ── Área principal ── -->
@@ -471,6 +599,7 @@
     <script>
         const GO2RTC_URL = "{{ go2rtc_url }}";
         const activeCams = new Set();
+        const viewerIntervals = {};
 
         function toggleCamera(camId, label, ip, ownerLabel, btn) {
             if (activeCams.has(camId)) {
@@ -491,14 +620,21 @@
 
                     activeCams.add(camId);
 
-                    btn.textContent = '− Remover';
-                    btn.classList.add('added');
-                    document.getElementById(`selector-${camId}`).classList.add('active');
+                    if (btn) {
+                        btn.textContent = '− Remover';
+                        btn.classList.add('added');
+                    }
+                    const selItem = document.getElementById(`selector-${camId}`);
+                    if (selItem) selItem.classList.add('active');
 
                     const grid = document.getElementById('cam-grid');
                     const tile = document.createElement('div');
                     tile.className = 'cam-tile';
                     tile.id = `tile-${camId}`;
+
+                    const viewerCount = (data.viewer_count || 1);
+                    const viewersHtml = _renderViewerChips(data.viewers || []);
+
                     tile.innerHTML = `
                     <div class="cam-tile-header">
                         <div>
@@ -512,18 +648,66 @@
                     <div class="cam-tile-footer">
                         <a href="${GO2RTC_URL}/stream.html?src=cam_${camId}" target="_blank">
                             ↗ Abrir em nova aba
-                        </a><button class="btn-remove-tile" onclick="removeCamera(${camId})">
+                        </a>
+                        <button class="btn-remove-tile" onclick="removeCamera(${camId})">
                             ✕ Remover
                         </button>
+                    </div>
+                    <div class="viewer-bar" onclick="toggleViewerList(${camId})">
+                        <span class="viewer-count" id="vcount-${camId}">
+                            👥 <span class="count-num">${viewerCount}</span>
+                            visualizador${viewerCount !== 1 ? 'es' : ''} ativo${viewerCount !== 1 ? 's' : ''}
+                        </span>
+                        <span style="font-size:.68em;color:var(--text-muted);">▾</span>
+                    </div>
+                    <div class="viewer-list" id="vlist-${camId}">
+                        ${viewersHtml || '<span style="font-size:.75em;color:var(--text-muted);">Nenhum visualizador registrado.</span>'}
                     </div>
                 `;
                     grid.appendChild(tile);
                     updateEmptyState();
+
+                    // Poll viewers every 10 seconds
+                    viewerIntervals[camId] = setInterval(() => refreshViewers(camId), 10000);
                 })
                 .catch(() => alert('Erro ao conectar com o servidor.'));
         }
 
+        function _renderViewerChips(viewers) {
+            if (!viewers || viewers.length === 0) return '';
+            return viewers.map(v =>
+                `<span class="viewer-chip">👤 ${v.first_name || v.username}</span>`
+            ).join('');
+        }
+
+        function toggleViewerList(camId) {
+            const list = document.getElementById(`vlist-${camId}`);
+            if (list) list.classList.toggle('open');
+        }
+
+        function refreshViewers(camId) {
+            fetch(`/view/cam-viewers/${camId}`)
+                .then(r => r.json())
+                .then(data => {
+                    if (!data.ok) return;
+                    const countEl = document.getElementById(`vcount-${camId}`);
+                    if (countEl) {
+                        const n = data.viewer_count || 0;
+                        countEl.innerHTML = `👥 <span class="count-num">${n}</span> visualizador${n !== 1 ? 'es' : ''} ativo${n !== 1 ? 's' : ''}`;
+                    }
+                    const listEl = document.getElementById(`vlist-${camId}`);
+                    if (listEl) {
+                        const html = _renderViewerChips(data.viewers || []);
+                        listEl.innerHTML = html || '<span style="font-size:.75em;color:var(--text-muted);">Nenhum visualizador registrado.</span>';
+                    }
+                })
+                .catch(() => {});
+        }
+
         function removeCamera(camId) {
+            clearInterval(viewerIntervals[camId]);
+            delete viewerIntervals[camId];
+
             fetch(`/view/remove-cam/${camId}`, {method: 'POST'})
                 .finally(() => {
                     activeCams.delete(camId);
@@ -541,6 +725,15 @@
 
                     updateEmptyState();
                 });
+        }
+
+        function openGroup(cameras) {
+            cameras.forEach(c => {
+                if (!activeCams.has(c.id)) {
+                    const btn = document.getElementById(`btn-${c.id}`);
+                    addCamera(c.id, c.label, c.ip, c.owner, btn);
+                }
+            });
         }
 
         function updateEmptyState() {

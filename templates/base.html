@@ -110,6 +110,59 @@
             text-shadow: 0 0 8px rgba(255, 0, 85, 0.5);
         }
 
+        /* ── Profile chip ── */
+        .nav-profile a {
+            display: flex !important;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 12px 4px 4px !important;
+            background: rgba(157, 78, 221, 0.08) !important;
+            border: 1px solid rgba(157, 78, 221, 0.3) !important;
+            border-radius: 999px !important;
+            color: var(--text-main) !important;
+            text-decoration: none;
+            transition: all 0.25s ease;
+        }
+
+        .nav-profile a:hover {
+            background: rgba(157, 78, 221, 0.18) !important;
+            border-color: rgba(157, 78, 221, 0.6) !important;
+            box-shadow: 0 0 14px rgba(157, 78, 221, 0.35);
+            text-shadow: none !important;
+        }
+
+        .nav-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            object-fit: cover;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.68em;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            background: linear-gradient(135deg, var(--amethyst-deep), var(--amethyst-core));
+            color: #FFF;
+            flex-shrink: 0;
+            box-shadow: 0 0 8px rgba(157, 78, 221, 0.7),
+                        0 0 16px rgba(157, 78, 221, 0.4);
+        }
+
+        .nav-avatar img {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .nav-firstname {
+            font-size: 0.82em;
+            font-weight: 500;
+            color: var(--text-main);
+        }
+
         /* ── Container ── */
         .container {
             max-width: 1200px;
@@ -315,9 +368,27 @@
         {% if session.get('user_id') %}
             <li><a href="/">Dashboard</a></li>
             <li><a href="/cameras">Câmeras</a></li>
-            <li><a href="/groups">Grupos</a></li>   {# visível para todos #}
+            <li><a href="/groups">Grupos</a></li>
             {% if session.get('is_admin') %}
                 <li><a href="/users">Usuários</a></li>
+            {% endif %}
+            {% if current_user %}
+            <li class="nav-profile">
+                <a href="/profile">
+                    <span class="nav-avatar">
+                        {% if current_user.profile_photo %}
+                            <img src="{{ url_for('static', filename=current_user.profile_photo) }}"
+                                 alt="foto">
+                        {% else %}
+                            {% set fn = (current_user.first_name or current_user.username)[0] | upper %}
+                            {% set ln_parts = (current_user.last_name or '').split() %}
+                            {% set ln = ln_parts[-1][0] | upper if ln_parts and ln_parts[-1] else '' %}
+                            {{ fn }}{{ ln }}
+                        {% endif %}
+                    </span>
+                    <span class="nav-firstname">{{ current_user.first_name or current_user.username }}</span>
+                </a>
+            </li>
             {% endif %}
             <li class="nav-logout"><a href="/logout">Sair</a></li>
         {% endif %}
