@@ -1,8 +1,10 @@
+import os
 from functools import wraps
 
 from flask import Flask, render_template, request, redirect, url_for, flash, session
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 
 from extensions import db
 from oauth_mail import send_email
@@ -13,6 +15,10 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///vms.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SECRET_KEY'] = 'sua-chave-secreta-aqui'
+app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(__file__), 'static', 'uploads', 'avatars')
+app.config['MAX_CONTENT_LENGTH'] = 4 * 1024 * 1024  # 4 MB
+
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'webp'}
 
 db.init_app(app)
 
@@ -77,6 +83,15 @@ def admin_required(f):
 
 def is_master_admin() -> bool:
     return session.get('username') == 'admin'
+
+
+@app.context_processor
+def inject_current_user():
+    user_id = session.get('user_id')
+    if user_id:
+        user = User.query.get(user_id)
+        return {'current_user': user}
+    return {'current_user': None}
 
 
 def _seed_admin():
@@ -526,7 +541,6 @@ def edit_group(group_id):
         elif action == 'add_camera':
             camera_id = request.form.get('camera_id', type=int)
             can_view = request.form.get('can_view') == '1'
-            can_control = request.form.get('can_control') == '1'
             if camera_id:
                 cam = Camera.query.get(camera_id)
                 if not cam or cam.owner_id != group.owner_id:
@@ -536,7 +550,7 @@ def edit_group(group_id):
                 else:
                     db.session.add(GroupPermission(
                         group_id=group_id, camera_id=camera_id,
-                        can_view=can_view, can_control=can_control))
+                        can_view=can_view))
                     db.session.commit()
                     flash("Câmera adicionada ao grupo!", "success")
 
@@ -577,8 +591,98 @@ def delete_group(group_id):
     return redirect(url_for('groups'))
 
 
+def _allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+@app.route('/profile', methods=['GET', 'POST'])
+@login_required
+def profile():
+    user = User.query.get_or_404(session['user_id'])
+
+    if request.method == 'POST':
+        action = request.form.get('action', 'update_info')
+
+        if action == 'update_info':
+            first_name = request.form.get('first_name', '').strip()
+            last_name = request.form.get('last_name', '').strip()
+            user.first_name = first_name
+            user.last_name = last_name
+            db.session.commit()
+            flash("Perfil atualizado!", "success")
+
+        elif action == 'change_password':
+            current_pw = request.form.get('current_password', '')
+            new_pw = request.form.get('new_password', '')
+            confirm_pw = request.form.get('confirm_password', '')
+
+            if not check_password_hash(user.password_hash, current_pw):
+                flash("Senha atual incorreta.", "error")
+                return redirect(url_for('profile'))
+
+            if len(new_pw) < 8:
+                flash("A nova senha deve ter no mínimo 8 caracteres.", "error")
+                return redirect(url_for('profile'))
+
+            if new_pw != confirm_pw:
+                flash("As senhas não coincidem.", "error")
+                return redirect(url_for('profile'))
+
+            user.password_hash = generate_password_hash(new_pw)
+            db.session.commit()
+            flash("Senha alterada com sucesso!", "success")
+
+        elif action == 'upload_photo':
+            file = request.files.get('photo')
+            if file and file.filename and _allowed_file(file.filename):
+                ext = file.filename.rsplit('.', 1)[1].lower()
+                filename = f"{user.id}.{ext}"
+                os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+                # Remove old photo if different extension
+                for old_ext in ALLOWED_EXTENSIONS:
+                    old_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{user.id}.{old_ext}")
+                    if old_ext != ext and os.path.exists(old_path):
+                        os.remove(old_path)
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+                user.profile_photo = f"uploads/avatars/{filename}"
+                db.session.commit()
+                flash("Foto de perfil atualizada!", "success")
+            else:
+                flash("Formato de arquivo inválido. Use PNG, JPG, GIF ou WebP.", "error")
+
+        elif action == 'remove_photo':
+            if user.profile_photo:
+                old_path = os.path.join(app.config['UPLOAD_FOLDER'],
+                                        os.path.basename(user.profile_photo))
+                if os.path.exists(old_path):
+                    os.remove(old_path)
+                user.profile_photo = None
+                db.session.commit()
+                flash("Foto removida.", "success")
+
+        return redirect(url_for('profile'))
+
+    return render_template('profile.html', user=user)
+
+
+def _migrate_db():
+    """Apply schema migrations not handled by db.create_all()."""
+    from sqlalchemy import text
+    migrations = [
+        "ALTER TABLE user ADD COLUMN profile_photo VARCHAR(200)",
+    ]
+    with db.engine.connect() as conn:
+        for sql in migrations:
+            try:
+                conn.execute(text(sql))
+                conn.commit()
+            except Exception:
+                pass  # Column already exists or other benign error
+
+
 with app.app_context():
     db.create_all()
+    _migrate_db()
     _seed_admin()
     _seed_camera_apps()
     _seed_default_users()
