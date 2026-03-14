@@ -638,10 +638,14 @@ def profile():
                 ext = file.filename.rsplit('.', 1)[1].lower()
                 filename = f"{user.id}.{ext}"
                 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-                # Remove old photo if different extension
-                for old_ext in ALLOWED_EXTENSIONS:
-                    old_path = os.path.join(app.config['UPLOAD_FOLDER'], f"{user.id}.{old_ext}")
-                    if old_ext != ext and os.path.exists(old_path):
+                # Remove old photo if it exists under a different name
+                if user.profile_photo:
+                    old_path = os.path.join(
+                        os.path.dirname(__file__),
+                        'static',
+                        user.profile_photo
+                    )
+                    if os.path.exists(old_path):
                         os.remove(old_path)
                 file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
                 user.profile_photo = f"uploads/avatars/{filename}"
@@ -667,6 +671,7 @@ def profile():
 
 def _migrate_db():
     """Apply schema migrations not handled by db.create_all()."""
+    import logging
     from sqlalchemy import text
     migrations = [
         "ALTER TABLE user ADD COLUMN profile_photo VARCHAR(200)",
@@ -676,8 +681,10 @@ def _migrate_db():
             try:
                 conn.execute(text(sql))
                 conn.commit()
-            except Exception:
-                pass  # Column already exists or other benign error
+                logging.info(f"[migrate] Applied: {sql}")
+            except Exception as exc:
+                # Typically "duplicate column" — safe to ignore
+                logging.debug(f"[migrate] Skipped (already applied or not applicable): {exc}")
 
 
 with app.app_context():

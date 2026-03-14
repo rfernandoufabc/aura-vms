@@ -13,41 +13,32 @@ _viewers_lock = threading.Lock()
 _camera_viewers: dict = {}   # cam_id (int) -> set of user_ids
 
 
-def _add_viewer(cam_id: int, user_id: int) -> int:
+def _add_viewer_atomic(cam_id: int, user_id: int):
+    """Atomically add a viewer. Returns (was_first_viewer, count, viewer_ids_snapshot)."""
     with _viewers_lock:
         if cam_id not in _camera_viewers:
             _camera_viewers[cam_id] = set()
+        was_first = len(_camera_viewers[cam_id]) == 0
         _camera_viewers[cam_id].add(user_id)
-        return len(_camera_viewers[cam_id])
+        return was_first, len(_camera_viewers[cam_id]), set(_camera_viewers[cam_id])
 
 
-def _remove_viewer(cam_id: int, user_id: int) -> int:
+def _remove_viewer_atomic(cam_id: int, user_id: int):
+    """Atomically remove a viewer. Returns (was_last_viewer, remaining_count)."""
     with _viewers_lock:
-        if cam_id in _camera_viewers:
-            _camera_viewers[cam_id].discard(user_id)
-            count = len(_camera_viewers[cam_id])
-            if count == 0:
-                del _camera_viewers[cam_id]
-            return count
-        return 0
+        if cam_id not in _camera_viewers:
+            return True, 0
+        was_last = _camera_viewers[cam_id] == {user_id} or len(_camera_viewers[cam_id]) == 0
+        _camera_viewers[cam_id].discard(user_id)
+        count = len(_camera_viewers[cam_id])
+        if count == 0:
+            del _camera_viewers[cam_id]
+        return was_last, count
 
 
 def _get_viewer_ids(cam_id: int) -> set:
     with _viewers_lock:
         return set(_camera_viewers.get(cam_id, set()))
-
-
-def _is_first_viewer(cam_id: int) -> bool:
-    """Returns True when the camera has no viewers yet (before adding the new one)."""
-    with _viewers_lock:
-        return cam_id not in _camera_viewers or len(_camera_viewers[cam_id]) == 0
-
-
-def _is_last_viewer(cam_id: int, user_id: int) -> bool:
-    """Returns True when this user is the only viewer of the camera."""
-    with _viewers_lock:
-        viewers = _camera_viewers.get(cam_id, set())
-        return viewers == {user_id} or len(viewers) == 0
 
 
 def login_required(f):
@@ -227,10 +218,10 @@ def add_cam(cam_id):
     go2rtc_base = os.environ.get('GO2RTC_URL', 'http://localhost:1984').rstrip('/')
     stream_name = f"cam_{cam_id}"
 
-    # Only register in go2rtc if this is the first viewer
-    first_viewer = _is_first_viewer(cam_id)
+    # Atomically add this viewer and learn whether we're the first
+    was_first, count, viewer_ids = _add_viewer_atomic(cam_id, user_id)
 
-    if first_viewer:
+    if was_first:
         rtsp_url = build_rtsp_url(cam)
         logging.info(f"[go2rtc] Registrando stream '{stream_name}' → {rtsp_url}")
         try:
@@ -241,23 +232,25 @@ def add_cam(cam_id):
             )
             logging.info(f"[go2rtc] Resposta: {resp.status_code} — {resp.text}")
             if resp.status_code not in (200, 201):
+                # Roll back viewer addition on go2rtc failure
+                _remove_viewer_atomic(cam_id, user_id)
                 return jsonify({
                     'ok': False,
                     'error': f"go2rtc retornou {resp.status_code}: {resp.text}"
                 }), 500
         except req.exceptions.ConnectionError:
+            _remove_viewer_atomic(cam_id, user_id)
             return jsonify({
                 'ok': False,
                 'error': 'Não foi possível conectar ao go2rtc. Verifique se está rodando.'
             }), 500
         except Exception as e:
             logging.exception("[go2rtc] Erro inesperado")
+            _remove_viewer_atomic(cam_id, user_id)
             return jsonify({'ok': False, 'error': str(e)}), 500
     else:
         logging.info(f"[go2rtc] Stream '{stream_name}' já registrado, reutilizando.")
 
-    count = _add_viewer(cam_id, user_id)
-    viewer_ids = _get_viewer_ids(cam_id)
     viewers = []
     for uid in viewer_ids:
         u = User.query.get(uid)
@@ -276,13 +269,12 @@ def remove_cam(cam_id):
     import requests as req
 
     user_id = session['user_id']
-    last_viewer = _is_last_viewer(cam_id, user_id)
-    _remove_viewer(cam_id, user_id)
+    was_last, _ = _remove_viewer_atomic(cam_id, user_id)
 
     go2rtc_base = os.environ.get('GO2RTC_URL', 'http://localhost:1984').rstrip('/')
     stream_name = f"cam_{cam_id}"
 
-    if last_viewer:
+    if was_last:
         logging.info(f"[go2rtc] Último viewer saiu. Removendo stream '{stream_name}'")
         try:
             resp = req.delete(
