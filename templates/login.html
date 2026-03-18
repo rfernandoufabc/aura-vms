@@ -42,22 +42,27 @@
         }
 
         .brand {
-            font-size: 2.4em;
-            font-weight: 700;
-            letter-spacing: 3px;
-            text-transform: uppercase;
-            color: #FFF;
+            display: flex;
+            align-items: center;
             text-decoration: none;
-            text-shadow: 0 0 5px #FFF, 0 0 10px #FFF,
-            0 0 25px var(--amethyst-core), 0 0 50px var(--amethyst-core),
-            0 0 90px var(--amethyst-deep);
             margin-bottom: 6px;
-            transition: text-shadow 0.4s ease;
+            transition: filter 0.4s ease;
         }
 
-        .brand:hover {
-            text-shadow: 0 0 5px #FFF, 0 0 10px #FFF,
-            0 0 25px var(--neon-cyan), 0 0 50px var(--neon-cyan), 0 0 90px #00B39F;
+        .brand img {
+            height: 58px;
+            width: auto;
+            display: block;
+            filter: drop-shadow(0 0 8px rgba(157, 78, 221, 0.9))
+                    drop-shadow(0 0 24px rgba(157, 78, 221, 0.6))
+                    drop-shadow(0 0 50px rgba(123, 44, 191, 0.4));
+            transition: filter 0.4s ease;
+        }
+
+        .brand:hover img {
+            filter: drop-shadow(0 0 8px rgba(0, 245, 212, 1))
+                    drop-shadow(0 0 24px rgba(0, 245, 212, 0.7))
+                    drop-shadow(0 0 50px rgba(0, 179, 159, 0.5));
         }
 
         .tagline {
@@ -315,7 +320,9 @@
 </head>
 <body>
 
-<a href="/" class="brand">Vizy</a>
+<a href="/" class="brand">
+    <img src="{{ url_for('static', filename='logo.svg') }}" alt="Vizy">
+</a>
 <p class="tagline">Video Management System</p>
 
 {% with messages = get_flashed_messages(with_categories=true) %}
@@ -359,17 +366,6 @@
                     </a>
                 </div>
             </form>
-
-            <!-- Reenviar confirmação -->
-            <div class="resend-area">
-                <p>Ainda não confirmou seu e-mail? Reenvie o link:</p>
-                <form method="POST" action="/resend-confirmation">
-                    <div class="resend-row">
-                        <input type="email" name="email" placeholder="seu@email.com">
-                        <button type="submit" class="btn-ghost">Reenviar</button>
-                    </div>
-                </form>
-            </div>
         </div>
 
         <!-- ── Painel CADASTRO ── -->

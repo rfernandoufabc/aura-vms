@@ -14,6 +14,7 @@ class User(db.Model):
     email_pending = db.Column(db.String(120), nullable=True)
     is_admin = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    profile_photo = db.Column(db.String(200), nullable=True)
     cameras_owned = db.relationship('Camera', backref='owner', lazy=True)
     permissions = db.relationship('Permission', backref='user', lazy=True)
     group_memberships = db.relationship('GroupMember', backref='user', lazy=True)
@@ -71,7 +72,6 @@ class Permission(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     camera_id = db.Column(db.Integer, db.ForeignKey('camera.id'), nullable=False)
     can_view = db.Column(db.Boolean, default=True)
-    can_control = db.Column(db.Boolean, default=False)
 
 
 class Group(db.Model):
@@ -98,5 +98,4 @@ class GroupPermission(db.Model):
     group_id = db.Column(db.Integer, db.ForeignKey('group.id'), nullable=False)
     camera_id = db.Column(db.Integer, db.ForeignKey('camera.id'), nullable=False)
     can_view = db.Column(db.Boolean, default=True)
-    can_control = db.Column(db.Boolean, default=False)
     __table_args__ = (db.UniqueConstraint('group_id', 'camera_id', name='uq_group_camera'),)

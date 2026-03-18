@@ -118,10 +118,6 @@
                     <input type="checkbox" name="can_view" value="1" checked style="width:auto;margin:0;accent-color:var(--neon-cyan);">
                     👁️ Ver
                 </label>
-                <label style="display:flex;align-items:center;gap:6px;font-size:.82em;cursor:pointer;">
-                    <input type="checkbox" name="can_control" value="1" style="width:auto;margin:0;accent-color:var(--amethyst-core);">
-                    🎮 Controlar
-                </label>
             </div>
             <button type="submit" style="padding:8px 16px;font-size:.82em;">➕ Adicionar</button>
         </form>
@@ -135,10 +131,6 @@
                     {% if p.can_view %}
                         <span style="background:rgba(0,245,212,.1);border:1px solid rgba(0,245,212,.3);
                             color:var(--neon-cyan);padding:2px 8px;border-radius:10px;font-size:.78em;">👁️ Ver</span>
-                    {% endif %}
-                    {% if p.can_control %}
-                        <span style="background:rgba(157,78,221,.1);border:1px solid rgba(157,78,221,.3);
-                            color:var(--amethyst-core);padding:2px 8px;border-radius:10px;font-size:.78em;">🎮 Controlar</span>
                     {% endif %}
                     <form method="POST" onsubmit="return confirm('Remover permissão?')">
                         <input type="hidden" name="action" value="remove_user_permission">
@@ -177,10 +169,6 @@
                     <input type="checkbox" name="can_view" value="1" checked style="width:auto;margin:0;accent-color:var(--neon-cyan);">
                     👁️ Ver
                 </label>
-                <label style="display:flex;align-items:center;gap:6px;font-size:.82em;cursor:pointer;">
-                    <input type="checkbox" name="can_control" value="1" style="width:auto;margin:0;accent-color:var(--amethyst-core);">
-                    🎮 Controlar
-                </label>
             </div>
             <button type="submit" style="padding:8px 16px;font-size:.82em;">➕ Adicionar</button>
         </form>
@@ -194,10 +182,6 @@
                     {% if gp.can_view %}
                         <span style="background:rgba(0,245,212,.1);border:1px solid rgba(0,245,212,.3);
                             color:var(--neon-cyan);padding:2px 8px;border-radius:10px;font-size:.78em;">👁️ Ver</span>
-                    {% endif %}
-                    {% if gp.can_control %}
-                        <span style="background:rgba(157,78,221,.1);border:1px solid rgba(157,78,221,.3);
-                            color:var(--amethyst-core);padding:2px 8px;border-radius:10px;font-size:.78em;">🎮 Controlar</span>
                     {% endif %}
                     <form method="POST" onsubmit="return confirm('Remover permissão de grupo?')">
                         <input type="hidden" name="action" value="remove_group_permission">

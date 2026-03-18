@@ -1,0 +1,289 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+    .profile-grid {
+        display: grid;
+        grid-template-columns: 260px 1fr;
+        gap: 24px;
+        align-items: start;
+    }
+
+    @media (max-width: 720px) {
+        .profile-grid { grid-template-columns: 1fr; }
+    }
+
+    .avatar-section {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+        padding: 32px 24px;
+    }
+
+    .profile-avatar-large {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        object-fit: cover;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2.2em;
+        font-weight: 700;
+        letter-spacing: 1px;
+        background: linear-gradient(135deg, var(--amethyst-deep), var(--amethyst-core));
+        color: #FFF;
+        box-shadow: 0 0 20px rgba(157, 78, 221, 0.7),
+                    0 0 40px rgba(157, 78, 221, 0.35);
+        cursor: default;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .profile-avatar-large img {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .avatar-initials {
+        text-shadow: 0 0 12px rgba(255,255,255,0.3);
+    }
+
+    .avatar-name {
+        text-align: center;
+        font-size: .95em;
+        font-weight: 600;
+        color: var(--text-main);
+    }
+
+    .avatar-username {
+        text-align: center;
+        font-size: .78em;
+        color: var(--text-muted);
+    }
+
+    .photo-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        width: 100%;
+    }
+
+    .btn-photo-upload {
+        background: rgba(157,78,221,.12);
+        border: 1px solid rgba(157,78,221,.35);
+        color: var(--amethyst-core);
+        border-radius: 8px;
+        padding: 8px 14px;
+        font-size: .78em;
+        font-weight: 600;
+        cursor: pointer;
+        text-align: center;
+        transition: all .25s;
+        width: 100%;
+        display: block;
+    }
+
+    .btn-photo-upload:hover {
+        background: rgba(157,78,221,.25);
+        box-shadow: 0 0 12px rgba(157,78,221,.35);
+    }
+
+    .btn-remove-photo {
+        background: rgba(255,0,85,.08);
+        border: 1px solid rgba(255,0,85,.25);
+        color: var(--danger);
+        border-radius: 8px;
+        padding: 6px 14px;
+        font-size: .75em;
+        font-weight: 500;
+        cursor: pointer;
+        text-align: center;
+        width: 100%;
+        display: block;
+    }
+
+    .section-title {
+        font-size: .72em;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: var(--text-muted);
+        margin-bottom: 4px;
+    }
+
+    .pw-strength {
+        height: 4px;
+        border-radius: 2px;
+        background: var(--glass-border);
+        margin: -10px 0 14px;
+        overflow: hidden;
+        transition: all .3s;
+    }
+
+    .pw-strength-bar {
+        height: 100%;
+        border-radius: 2px;
+        width: 0%;
+        transition: width .3s, background .3s;
+    }
+</style>
+
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:24px;">
+    <h2 style="margin:0;">👤 Meu Perfil</h2>
+</div>
+
+<div class="profile-grid">
+
+    <!-- ── Avatar column ── -->
+    <div class="card avatar-section">
+        <div class="profile-avatar-large">
+            {% if user.profile_photo %}
+                <img src="{{ url_for('static', filename=user.profile_photo) }}" alt="foto de perfil">
+            {% else %}
+                <span class="avatar-initials">
+                    {% set fn = (user.first_name or user.username)[0] | upper %}
+                    {% set ln_parts = (user.last_name or '').split() %}
+                    {% set ln = ln_parts[-1][0] | upper if ln_parts and ln_parts[-1] else '' %}
+                    {{ fn }}{{ ln }}
+                </span>
+            {% endif %}
+        </div>
+
+        <div class="avatar-name">{{ user.first_name or '' }} {{ user.last_name or '' }}</div>
+        <div class="avatar-username">@{{ user.username }}</div>
+
+        <!-- Photo upload -->
+        <div class="photo-actions">
+            <form method="POST" enctype="multipart/form-data" id="photo-form">
+                <input type="hidden" name="action" value="upload_photo">
+                <label class="btn-photo-upload" for="photo-input">
+                    📷 Alterar foto
+                </label>
+                <input type="file" id="photo-input" name="photo"
+                       accept=".png,.jpg,.jpeg,.gif,.webp"
+                       style="display:none"
+                       onchange="document.getElementById('photo-form').submit()">
+            </form>
+            {% if user.profile_photo %}
+            <form method="POST" onsubmit="return confirm('Remover foto?')">
+                <input type="hidden" name="action" value="remove_photo">
+                <button type="submit" class="btn-remove-photo">🗑️ Remover foto</button>
+            </form>
+            {% endif %}
+        </div>
+
+        {% if user.is_admin %}
+        <div style="margin-top:4px;">
+            <span style="background:rgba(157,78,221,.15);border:1px solid rgba(157,78,221,.35);
+                color:var(--amethyst-core);border-radius:20px;padding:3px 12px;font-size:.72em;font-weight:600;">
+                {% if user.username == 'admin' %}⭐ Admin Master{% else %}🛡️ Admin{% endif %}
+            </span>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- ── Forms column ── -->
+    <div>
+        <!-- Info pessoal -->
+        <div class="card">
+            <h3>📝 Informações Pessoais</h3>
+            <form method="POST" style="display:grid;grid-template-columns:1fr 1fr;gap:0 24px;">
+                <input type="hidden" name="action" value="update_info">
+                <div>
+                    <label class="section-title">Primeiro Nome</label>
+                    <input type="text" name="first_name" value="{{ user.first_name or '' }}"
+                           placeholder="Nome">
+                </div>
+                <div>
+                    <label class="section-title">Sobrenome</label>
+                    <input type="text" name="last_name" value="{{ user.last_name or '' }}"
+                           placeholder="Sobrenome">
+                </div>
+                <div>
+                    <label class="section-title">Nome de Usuário</label>
+                    <input type="text" value="{{ user.username }}" readonly
+                           style="color:var(--text-muted);cursor:not-allowed;">
+                </div>
+                <div>
+                    <label class="section-title">E-mail</label>
+                    <input type="text"
+                           value="{{ user.email or user.email_pending or '—' }}" readonly
+                           style="color:var(--text-muted);cursor:not-allowed;">
+                </div>
+                <div style="grid-column:1/-1;margin-top:4px;">
+                    <button type="submit">💾 Salvar</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Alterar senha -->
+        <div class="card" style="border-color:rgba(0,245,212,.2);">
+            <h3 style="color:var(--neon-cyan);">🔑 Alterar Senha</h3>
+            <form method="POST" id="pw-form"
+                  style="display:grid;grid-template-columns:1fr 1fr;gap:0 24px;">
+                <input type="hidden" name="action" value="change_password">
+
+                <div style="grid-column:1/-1;">
+                    <label class="section-title">Senha Atual</label>
+                    <input type="password" name="current_password" required
+                           placeholder="Digite sua senha atual">
+                </div>
+
+                <div>
+                    <label class="section-title">Nova Senha</label>
+                    <input type="password" name="new_password" id="new-pw" required
+                           placeholder="Mínimo 8 caracteres"
+                           oninput="checkStrength(this.value)">
+                    <div class="pw-strength"><div class="pw-strength-bar" id="pw-bar"></div></div>
+                </div>
+
+                <div>
+                    <label class="section-title">Confirmar Nova Senha</label>
+                    <input type="password" name="confirm_password" id="confirm-pw" required
+                           placeholder="Repita a nova senha">
+                </div>
+
+                <div style="grid-column:1/-1;margin-top:4px;">
+                    <button type="submit"
+                            style="background:linear-gradient(135deg,#00897B,#00F5D4);color:#0a0a0a;">
+                        🔑 Alterar Senha
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<script>
+function checkStrength(pw) {
+    let score = 0;
+    if (pw.length >= 8) score++;
+    if (pw.length >= 12) score++;
+    if (/[A-Z]/.test(pw)) score++;
+    if (/[0-9]/.test(pw)) score++;
+    if (/[^A-Za-z0-9]/.test(pw)) score++;
+
+    const bar = document.getElementById('pw-bar');
+    const pct = (score / 5) * 100;
+    bar.style.width = pct + '%';
+    if (score <= 1) bar.style.background = '#FF0055';
+    else if (score <= 3) bar.style.background = '#FFD700';
+    else bar.style.background = '#00F5D4';
+}
+
+document.getElementById('pw-form').addEventListener('submit', function(e) {
+    const np = document.getElementById('new-pw').value;
+    const cp = document.getElementById('confirm-pw').value;
+    if (np !== cp) {
+        e.preventDefault();
+        alert('As senhas não coincidem!');
+    }
+});
+</script>
+
+{% endblock %}
