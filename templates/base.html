@@ -54,22 +54,24 @@
         }
 
         nav .brand {
-            font-size: 1.25em;
-            font-weight: 700;
-            letter-spacing: 3px;
-            text-transform: uppercase;
-            color: #FFF;
+            display: flex;
+            align-items: center;
             text-decoration: none;
-            text-shadow: 0 0 5px #FFF,
-            0 0 15px var(--amethyst-core),
-            0 0 35px var(--amethyst-deep);
-            transition: text-shadow 0.4s ease;
+            transition: filter 0.4s ease;
         }
 
-        nav .brand:hover {
-            text-shadow: 0 0 5px #FFF,
-            0 0 15px var(--neon-cyan),
-            0 0 35px #00B39F;
+        nav .brand img {
+            height: 36px;
+            width: auto;
+            display: block;
+            filter: drop-shadow(0 0 6px rgba(157, 78, 221, 0.8))
+                    drop-shadow(0 0 16px rgba(157, 78, 221, 0.5));
+            transition: filter 0.4s ease;
+        }
+
+        nav .brand:hover img {
+            filter: drop-shadow(0 0 6px rgba(0, 245, 212, 0.9))
+                    drop-shadow(0 0 18px rgba(0, 245, 212, 0.6));
         }
 
         nav ul {
@@ -363,7 +365,9 @@
 
 <!-- ── Navbar ── -->
 <nav>
-    <a href="/" class="brand">Vizy</a>
+    <a href="/" class="brand">
+        <img src="{{ url_for('static', filename='logo.svg') }}" alt="Vizy">
+    </a>
     <ul>
         {% if session.get('user_id') %}
             <li><a href="/">Dashboard</a></li>
